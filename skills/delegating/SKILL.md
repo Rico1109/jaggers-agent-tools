@@ -1,12 +1,13 @@
 ---
-name: delegation
+name: delegating
 description: >-
-  Delegate tasks to optimal backend (CCS simple or unitAI workflows).
-  Auto-selects based on keywords. Interactive menu for user choice.
+  Delegate tasks to cost-optimized models (CCS) or multi-agent workflows (unitAI).
+  Use when the user asks to "delegate" a task, or for simple deterministic tasks (typos, tests),
+  complex code reviews, or large-scale refactoring that can be offloaded.
 version: 6.0.0
 ---
 
-# Delegation
+# Delegating Tasks
 
 Delegate tasks to cost-optimized models (CCS) or multi-agent workflows (unitAI).
 

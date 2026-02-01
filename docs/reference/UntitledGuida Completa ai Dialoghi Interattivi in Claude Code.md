@@ -1,0 +1,694 @@
+---
+title: Guida Completa ai Dialoghi Interattivi in Claude Code
+date_created: Tuesday, January 20th 2026, 3:51:24 am
+date_modified: Tuesday, January 21st 2026
+version: 2.0
+---
+
+# Guida Completa ai Dialoghi Interattivi in Claude Code
+
+Questa guida documenta il funzionamento, l'architettura e l'implementazione dei popup di dialogo e delle richieste interattive (**Interactive Elicitation**) all'interno di Claude Code.
+
+---
+
+## 1. Descrizione e Funzionamento
+
+L'interfaccia interattiva di Claude Code non è una semplice chat, ma un sistema di **"Human-in-the-loop"** basato sul Model Context Protocol (MCP).
+
+### Cos'è
+
+È un layer di comunicazione che permette all'agente di sospendere l'esecuzione di un task per richiedere input espliciti. Invece di fare supposizioni (allucinazioni di intento), l'agente invoca il tool `AskUserQuestion` che trasforma una richiesta JSON in un elemento grafico interattivo nel terminale.
+
+### Funzioni Principali
+
+- **Risoluzione Ambiguità:** Scelta tra framework, librerie o pattern di design
+- **Validazione Input:** Richiesta di parametri mancanti per comandi o script
+- **Gate di Sicurezza:** Richiesta di permessi per azioni critiche o distruttive
+- **Configurazione Dinamica:** Definizione di preferenze durante l'esecuzione di una Skill
+
+---
+
+## 2. Riferimenti Ufficiali
+
+- **Documentazione MCP (Tools):** [Model Context Protocol - Tools](https://modelcontextprotocol.io/docs/concepts/tools) (Sezione _Human-in-the-loop_)
+- **Claude Code Guide:** [Claude Code Documentation](https://docs.anthropic.com/en/docs/agents-and-tools/claude-code)
+- **Changelog:** Accessibile tramite `/changelog` in Claude Code (riferimenti a partire dalla v2.0.27 per la nuova Permission UI)
+
+---
+
+## 3. Come Implementare l'Interattività
+
+### A. Tool `AskUserQuestion` (Metodo Primario) ✅
+
+Il tool `AskUserQuestion` è il meccanismo ufficiale per creare dialoghi interattivi in Claude Code.
+
+#### Schema Completo
+
+```json
+{
+  "questions": [
+    {
+      "header": "Titolo Breve (max 12 caratteri)",
+      "question": "Domanda completa che spiega il contesto?",
+      "multiSelect": false,
+      "options": [
+        {
+          "label": "Opzione A",
+          "description": "Descrizione dettagliata di cosa comporta questa scelta"
+        },
+        {
+          "label": "Opzione B",
+          "description": "Descrizione alternativa"
+        },
+        {
+          "label": "Cancel",
+          "description": "Annulla l'operazione"
+        }
+      ]
+    }
+  ]
+}
+```
+
+#### Esempio Pratico: Scelta Database
+
+```json
+{
+  "questions": [
+    {
+      "header": "Database",
+      "question": "Quale database vuoi inizializzare per questo progetto?",
+      "multiSelect": false,
+      "options": [
+        {
+          "label": "PostgreSQL",
+          "description": "Database relazionale robusto per produzione con supporto JSON"
+        },
+        {
+          "label": "MongoDB",
+          "description": "Database NoSQL per schemi flessibili e dati non strutturati"
+        },
+        {
+          "label": "SQLite",
+          "description": "Database embedded leggero per sviluppo locale"
+        },
+        {
+          "label": "Cancel",
+          "description": "Annulla la configurazione del database"
+        }
+      ]
+    }
+  ]
+}
+```
+
+### B. Istruzioni in `CLAUDE.md` (Guardrails Globali)
+
+Definisci regole globali nel file `.claude/CLAUDE.md` del tuo progetto:
+
+```markdown
+## Interactive Protocol
+
+**Global Guardrails for Agent Autonomy:**
+1. **No-Guessing Rule**: Never proceed with architectural changes, critical deletions, or ambiguous configurations without explicit confirmation.
+2. **Trigger Mechanism**: Use the `AskUserQuestion` tool whenever you encounter:
+   - Ambiguous choices (e.g., multiple valid libraries)
+   - Stale data (older than T-2)
+   - Missing prerequisites (e.g., unconfigured MCP servers)
+3. **UI Standards**: Questions must be concise, action-oriented, and offer a clear "Cancel" or "Fallback" option.
+```
+
+**Cosa fa questa configurazione:**
+- Impedisce a Claude di fare assunzioni arbitrarie
+- Forza l'uso di `AskUserQuestion` in scenari critici
+- Standardizza il formato delle domande
+
+### C. Integrazione nei Comandi/Skills
+
+Nei file markdown dei comandi (`.claude/commands/*.md`) o skills, inserisci istruzioni esplicite:
+
+```markdown
+## Interactive Mode
+
+If any issues are detected (e.g. missing dependencies), you MUST use `AskUserQuestion`.
+
+**Example: Missing Configuration**
+```json
+{
+  "questions": [
+    {
+      "header": "Configuration",
+      "question": "API key not found in .env file. How would you like to proceed?",
+      "multiSelect": false,
+      "options": [
+        {"label": "Enter manually", "description": "I will provide the API key now"},
+        {"label": "Skip for now", "description": "Continue without API access"},
+        {"label": "Exit setup", "description": "Abort the setup process"}
+      ]
+    }
+  ]
+}
+```
+
+---
+
+## 4. Selezioni Multiple (`multiSelect: true`)
+
+Usa `multiSelect: true` quando l'utente può scegliere più opzioni contemporaneamente.
+
+### Esempio: Selezione Mercati
+
+```json
+{
+  "questions": [
+    {
+      "header": "Markets",
+      "question": "Quali mercati vuoi analizzare in questa sessione?",
+      "multiSelect": true,
+      "options": [
+        {"label": "ES=F", "description": "S&P 500 E-mini Futures"},
+        {"label": "NQ=F", "description": "Nasdaq-100 E-mini Futures"},
+        {"label": "ZN=F", "description": "10-Year Treasury Note Futures"},
+        {"label": "GC=F", "description": "Gold Futures"},
+        {"label": "CL=F", "description": "Crude Oil Futures"}
+      ]
+    }
+  ]
+}
+```
+
+**Risposta attesa** (se utente seleziona ES=F e ZN=F):
+```json
+{
+  "answers": {
+    "0": ["ES=F", "ZN=F"]
+  }
+}
+```
+
+---
+
+## 4.5. Multiple Questions con Navigazione TAB 🔥
+
+**Feature Avanzata:** Quando invochi `AskUserQuestion` con **2+ domande nell'array**, Claude Code crea un'interfaccia con **tabs navigabili**.
+
+### Come Funziona
+
+```json
+{
+  "questions": [
+    {
+      "header": "Markets",      // ← Tab 1
+      "question": "Quali mercati vuoi monitorare?",
+      "multiSelect": true,
+      "options": [...]
+    },
+    {
+      "header": "Data Sources", // ← Tab 2
+      "question": "Quali fonti dati abilitare?",
+      "multiSelect": true,
+      "options": [...]
+    },
+    {
+      "header": "Analysis",     // ← Tab 3
+      "question": "Analisi automatiche?",
+      "multiSelect": true,
+      "options": [...]
+    }
+  ]
+}
+```
+
+### UI Risultante
+
+```
+┌─ Markets ─┬─ Data Sources ─┬─ Analysis ─┐
+│                                           │
+│  Quali mercati vuoi monitorare?          │
+│                                           │
+│  ☑ ES=F  (S&P 500 E-mini)                │
+│  ☑ NQ=F  (Nasdaq-100 E-mini)             │
+│  ☐ ZN=F  (10Y Treasury)                  │
+│                                           │
+│  Premi TAB per 'Data Sources' →          │
+└───────────────────────────────────────────┘
+```
+
+**Navigazione:**
+- `TAB` → Sezione successiva
+- `Shift+TAB` → Sezione precedente
+- `Spazio/Invio` → Seleziona opzione
+
+### Risposta con Multiple Questions
+
+```json
+{
+  "answers": {
+    "0": ["ES=F", "NQ=F"],                    // Markets (Tab 1)
+    "1": ["CME Watcher", "Yahoo Finance"],    // Data Sources (Tab 2)
+    "2": ["Positioning", "Volatility"]        // Analysis (Tab 3)
+  }
+}
+```
+
+### Quando Usare TAB Navigation
+
+✅ **Usa TAB Navigation quando:**
+- Domande sono **indipendenti** tra loro
+- Configurazione di **più categorie** in parallelo
+- Setup iniziale con **3-4 sezioni logiche**
+
+❌ **NON usare TAB Navigation quando:**
+- Risposta a Q1 **determina** le opzioni di Q2 (usa sequential calls)
+- Flow condizionale (if/else logic)
+- Più di 5-6 sezioni (sovraccarico cognitivo)
+
+### Esempio Pratico
+
+Vedi `docs/examples/tab-navigation-patterns.md` per implementazioni complete con:
+- Mercury Setup Multi-Step
+- CME Analyst Preferences (4 sezioni)
+- Newsletter Registry Configuration
+- Validazione cross-section
+
+---
+
+## 5. Gestione delle Risposte
+
+### Come Claude Riceve le Risposte
+
+Dopo l'invocazione di `AskUserQuestion`, Claude riceve la risposta nel parametro `answers`:
+
+```json
+{
+  "answers": {
+    "0": "PostgreSQL"  // Per domanda singola
+  }
+}
+```
+
+Per domande multiple:
+```json
+{
+  "answers": {
+    "0": "Configure now",
+    "1": "Enable logging"
+  }
+}
+```
+
+### Esempio Pratico di Gestione Post-Risposta
+
+**Scenario:** Comando `/mercury-setup` che rileva Gmail MCP mancante.
+
+#### 1. Invocazione del Tool
+
+```markdown
+Gmail MCP server not configured. Asking user for guidance...
+```
+
+```json
+{
+  "questions": [
+    {
+      "header": "Configuration",
+      "question": "Gmail MCP server is not configured. How would you like to proceed?",
+      "multiSelect": false,
+      "options": [
+        {"label": "Configure now", "description": "Guide me through .mcp.json setup"},
+        {"label": "Skip for now", "description": "I will configure it later"},
+        {"label": "Exit setup", "description": "Abort the setup process"}
+      ]
+    }
+  ]
+}
+```
+
+#### 2. Ricezione Risposta
+
+```json
+{
+  "answers": {
+    "0": "Configure now"
+  }
+}
+```
+
+#### 3. Logica Condizionale
+
+**Nel prompt dell'agente/comando:**
+
+```markdown
+Based on user selection:
+
+**If "Configure now":**
+1. Read the existing `.mcp.json` file (if exists)
+2. Guide user through adding Gmail MCP configuration:
+   ```json
+   {
+     "mcpServers": {
+       "gmail": {
+         "command": "npx",
+         "args": ["-y", "@anthropic-ai/mcp-server-gmail"],
+         "env": {
+           "GOOGLE_CLIENT_ID": "your-client-id",
+           "GOOGLE_CLIENT_SECRET": "your-client-secret"
+         }
+       }
+     }
+   }
+   ```
+3. Provide instructions for obtaining OAuth credentials
+4. Verify connection after setup
+
+**If "Skip for now":**
+1. Log a warning: "Gmail MCP server skipped - email-based features disabled"
+2. Continue setup without email functionality
+3. Add reminder to final summary
+
+**If "Exit setup":**
+1. Display: "Setup aborted by user"
+2. Do NOT create any files
+3. Exit gracefully
+```
+
+---
+
+## 6. Esempi Pratici dal Progetto Mercury
+
+### Esempio 1: Data Freshness Check (CME Analyst)
+
+**Contesto:** L'agente `cme-analyst` rileva che i dati di mercato sono obsoleti (T-2 o più vecchi).
+
+```json
+{
+  "questions": [
+    {
+      "header": "Data Freshness",
+      "question": "Market data is stale (T-2 days old). How should I proceed?",
+      "multiSelect": false,
+      "options": [
+        {
+          "label": "Proceed anyway",
+          "description": "Analyze existing data with low confidence caveats"
+        },
+        {
+          "label": "Run CME Watcher",
+          "description": "Attempt to fetch fresh data now"
+        },
+        {
+          "label": "Abort",
+          "description": "Stop analysis"
+        }
+      ]
+    }
+  ]
+}
+```
+
+**Gestione Risposta:**
+```markdown
+- **Proceed anyway** → Add disclaimer: "⚠️ Analysis based on T-2 data (low confidence)"
+- **Run CME Watcher** → Execute `/mercury-sync --force` and retry analysis
+- **Abort** → Exit with message: "Analysis aborted due to stale data"
+```
+
+### Esempio 2: Setup Re-run Detection
+
+**Contesto:** L'utente esegue `/mercury-setup` ma il sistema è già configurato.
+
+```json
+{
+  "questions": [
+    {
+      "header": "Setup Status",
+      "question": "Mercury Intelligence is already configured. What do you want to do?",
+      "multiSelect": false,
+      "options": [
+        {
+          "label": "Verify configuration",
+          "description": "Run health check on existing setup"
+        },
+        {
+          "label": "Reset configuration",
+          "description": "Recreate directory structure (preserves history)"
+        },
+        {
+          "label": "Cancel",
+          "description": "Exit setup"
+        }
+      ]
+    }
+  ]
+}
+```
+
+### Esempio 3: System Health Remediation
+
+**Contesto:** `/mercury-health` rileva stato DEGRADED o CRITICAL.
+
+```json
+{
+  "questions": [
+    {
+      "header": "System Health",
+      "question": "Issues detected (Status: DEGRADED). What would you like to do?",
+      "multiSelect": false,
+      "options": [
+        {
+          "label": "Run Diagnostics",
+          "description": "View detailed error logs"
+        },
+        {
+          "label": "Run Setup",
+          "description": "Attempt to fix configuration issues via /mercury-setup"
+        },
+        {
+          "label": "Ignore",
+          "description": "Proceed despite warnings"
+        }
+      ]
+    }
+  ]
+}
+```
+
+---
+
+## 7. Best Practices
+
+### ✅ DO
+
+1. **Context First**
+   ```markdown
+   ❌ Bad: "Choose an option:"
+   ✅ Good: "Database connection failed due to wrong credentials. How should I proceed?"
+   ```
+
+2. **Opzioni Limitate (2-5)**
+   - Evita il sovraccarico cognitivo
+   - Raggruppa opzioni simili
+
+3. **Sempre un'Opzione di Uscita**
+   ```json
+   {"label": "Cancel", "description": "Abort operation"}
+   ```
+
+4. **Descrizioni Chiare**
+   - Spiega le conseguenze di ogni scelta
+   - Usa un linguaggio orientato all'azione
+
+5. **Header Concisi**
+   - Max 12 caratteri (limiti UI)
+   - Esempi: `Database`, `Config`, `Data Fresh`, `System`
+
+### ❌ DON'T
+
+1. **Non usare domande vaghe**
+   ```markdown
+   ❌ "What do you want to do?"
+   ✅ "API key not found. Configure now or skip?"
+   ```
+
+2. **Non offrire troppe opzioni**
+   ```json
+   ❌ 10 opzioni → Confusione
+   ✅ 3-4 opzioni → Chiarezza
+   ```
+
+3. **Non saltare il contesto**
+   ```markdown
+   ❌ "Choose database: [PostgreSQL] [MongoDB]"
+   ✅ "No database configured. Which one would you like to use?"
+   ```
+
+4. **Non dimenticare `multiSelect`**
+   - Se l'utente può scegliere più elementi, imposta `multiSelect: true`
+
+---
+
+## 8. Pattern Comuni
+
+### Pattern 1: Prerequisiti Mancanti
+
+```json
+{
+  "questions": [{
+    "header": "Prerequisites",
+    "question": "[Prerequisito X] is missing. How would you like to proceed?",
+    "multiSelect": false,
+    "options": [
+      {"label": "Install now", "description": "Guide me through installation"},
+      {"label": "Skip", "description": "Continue without this feature"},
+      {"label": "Abort", "description": "Exit setup"}
+    ]
+  }]
+}
+```
+
+### Pattern 2: Conflitti di Versione
+
+```json
+{
+  "questions": [{
+    "header": "Conflict",
+    "question": "Found conflicting versions of [Library] (v1.2.3 and v2.0.0). Which should I use?",
+    "multiSelect": false,
+    "options": [
+      {"label": "v2.0.0 (Latest)", "description": "Use latest version (may break compatibility)"},
+      {"label": "v1.2.3 (Stable)", "description": "Use stable version (guaranteed compatibility)"},
+      {"label": "Show differences", "description": "Compare changelog before deciding"}
+    ]
+  }]
+}
+```
+
+### Pattern 3: Azioni Distruttive
+
+```json
+{
+  "questions": [{
+    "header": "Confirmation",
+    "question": "This will DELETE all data in [Resource]. Are you sure?",
+    "multiSelect": false,
+    "options": [
+      {"label": "Yes, delete", "description": "⚠️ Permanent action - cannot be undone"},
+      {"label": "Backup first", "description": "Create backup before deletion"},
+      {"label": "Cancel", "description": "Abort deletion"}
+    ]
+  }]
+}
+```
+
+---
+
+## 9. Testing e Verifica
+
+### Test Manuale
+
+Esegui questo comando in Claude Code:
+
+```
+Claude, d'ora in avanti, ogni volta che devi creare un file, chiedimi conferma usando AskUserQuestion con le opzioni 'Create', 'Preview first' e 'Cancel'.
+```
+
+Se Claude mostra un popup interattivo → Implementazione corretta ✅
+
+### Test Automatico (Integrazione Skills)
+
+Inserisci questo snippet in una skill di test:
+
+```markdown
+**Test Interactive Mode:**
+
+If the current timestamp ends with an even second, invoke `AskUserQuestion`:
+```json
+{
+  "questions": [{
+    "header": "Test",
+    "question": "This is a test popup. Select any option:",
+    "multiSelect": false,
+    "options": [
+      {"label": "Option A", "description": "Test option A"},
+      {"label": "Option B", "description": "Test option B"}
+    ]
+  }]
+}
+```
+
+---
+
+## 10. Troubleshooting
+
+### Problema: Il popup non compare
+
+**Possibili cause:**
+1. Nome tool errato (`ask_user` invece di `AskUserQuestion`)
+2. Schema JSON malformato (manca `questions` array)
+3. Campo `header` troppo lungo (>12 caratteri)
+
+**Soluzione:**
+Verifica lo schema JSON con un validator e controlla i log di Claude Code.
+
+### Problema: Risposta non viene processata
+
+**Causa:**
+L'agente non ha logica condizionale per gestire `answers`.
+
+**Soluzione:**
+Aggiungi esplicitamente nel prompt:
+
+```markdown
+After receiving the user's answer via `answers` parameter:
+- If answer is "Option A": [do X]
+- If answer is "Option B": [do Y]
+```
+
+---
+
+## 11. Risorse Aggiuntive
+
+### Implementazioni di Riferimento
+
+Vedi i file nel progetto Mercury:
+- `mercury-plugin/commands/mercury-setup.md` (Setup interattivo)
+- `mercury-plugin/agents/cme-analyst.md` (Data freshness check)
+- `mercury-plugin/commands/mercury-health.md` (Remediation menu)
+
+### Template Pronto all'Uso
+
+```json
+{
+  "questions": [
+    {
+      "header": "[MAX 12]",
+      "question": "[Contesto chiaro + domanda specifica]?",
+      "multiSelect": false,
+      "options": [
+        {"label": "[Azione 1]", "description": "[Cosa succede se scelgo questa]"},
+        {"label": "[Azione 2]", "description": "[Alternativa]"},
+        {"label": "Cancel", "description": "Annulla operazione"}
+      ]
+    }
+  ]
+}
+```
+
+---
+
+## 12. Changelog Guida
+
+**v2.0 (2026-01-21):**
+- ✅ Corretto nome tool da `ask_user` a `AskUserQuestion`
+- ✅ Aggiornato schema JSON con formato completo
+- ✅ Rimossa sezione `.claude/settings.json` (campo `interactive` non documentato)
+- ✅ Aggiunti esempi pratici dal progetto Mercury
+- ✅ Documentata gestione risposte post-`AskUserQuestion`
+- ✅ Aggiunti pattern comuni e troubleshooting
+
+**v1.0 (2026-01-20):**
+- Versione iniziale
+
+---
+
+**Domande?** Consulta i file di esempio in `mercury-plugin/` o esegui `/mercury-help` per assistenza.

@@ -2,6 +2,14 @@
 
 This document provides detailed information about unitAI workflows. Consult this when task requirements are ambiguous or workflow selection is unclear.
 
+## Contents
+- [1. parallel-review (Code Review)](#1-parallel-review-code-review)
+- [2. feature-design (Feature Development)](#2-feature-design-feature-development)
+- [3. pre-commit-validate (Pre-Commit Validation)](#3-pre-commit-validate-pre-commit-validation)
+- [4. bug-hunt (Root Cause Analysis)](#4-bug-hunt-root-cause-analysis)
+- [5. refactor-sprint (Large-Scale Refactoring)](#5-refactor-sprint-large-scale-refactoring)
+- [6. validate-last-commit (Post-Commit Validation)](#6-validate-last-commit-post-commit-validation)
+
 ## Available Workflows
 
 ### 1. parallel-review (Code Review)

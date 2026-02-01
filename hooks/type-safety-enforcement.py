@@ -1,0 +1,119 @@
+#!/usr/bin/env python3
+import json
+import sys
+import os
+import subprocess
+
+# Configuration
+STRICT_DIRS = ["mcp_server"]
+WARN_DIRS = ["scripts"]
+PROJECT_ROOT = os.environ.get('CLAUDE_PROJECT_DIR', os.getcwd())
+VENV_PATH = os.path.join(PROJECT_ROOT, ".venv")
+
+# Colors
+RED = '\033[0;31m'
+YELLOW = '\033[1;33m'
+GREEN = '\033[0;32m'
+CYAN = '\033[0;36m'
+NC = '\033[0m'
+
+def is_strict_path(file_path):
+    rel_path = os.path.relpath(file_path, PROJECT_ROOT)
+    for d in STRICT_DIRS:
+        if rel_path.startswith(d):
+            return True
+    return False
+
+def run_mypy(target, is_strict):
+    if not os.path.exists(os.path.join(VENV_PATH, "bin", "activate")):
+        print(f"{YELLOW}⚠️  Venv not found at {VENV_PATH}, skipping check{NC}")
+        return True
+
+    cmd = f"source {VENV_PATH}/bin/activate && python -m mypy {target} --explicit-package-bases"
+    
+    try:
+        result = subprocess.run(cmd, shell=True, executable="/bin/bash", capture_output=True, text=True)
+        
+        if result.returncode != 0:
+            if is_strict:
+                print(f"{RED}❌ MYPY FAILED (STRICT MODE){NC}")
+                print(result.stdout)
+                print(f"
+{RED}🚫 COMMIT BLOCKED: Fix type errors in {target}{NC}")
+                print(f"{CYAN}💡 Run: source .venv/bin/activate && python -m mypy {target}{NC}")
+                return False
+            else:
+                print(f"{YELLOW}⚠️  MYPY WARNING (LENIENT MODE){NC}")
+                print("
+".join(result.stdout.splitlines()[:20]))
+                print(f"
+{YELLOW}⚡ Type errors exist in {target} (commit allowed){NC}")
+                return True
+        else:
+            print(f"{GREEN}✅ MYPY PASSED: {target}{NC}")
+            return True
+
+    except Exception as e:
+        print(f"Error running mypy: {e}")
+        return True # Fail open
+
+try:
+    data = json.load(sys.stdin)
+    tool_name = data.get('tool_name')
+    tool_input = data.get('tool_input', {})
+
+    # 1. Check Git Commits (Bash)
+    if tool_name == 'Bash':
+        command = tool_input.get('command', '')
+        if 'git commit' in command:
+            print(f"{CYAN}🔍 TYPE SAFETY CHECK: Validating staged Python files...{NC}", file=sys.stderr)
+            
+            # Get staged files
+            try:
+                staged = subprocess.check_output(
+                    "git diff --cached --name-only --diff-filter=ACM | grep '\.py$'", 
+                    shell=True, cwd=PROJECT_ROOT
+                ).decode().strip().splitlines()
+            except subprocess.CalledProcessError:
+                staged = []
+
+            if not staged:
+                print(f"{GREEN}✅ No Python files staged{NC}", file=sys.stderr)
+                sys.exit(0)
+
+            failed = False
+            
+            # Check individual files
+            for f in staged:
+                full_path = os.path.join(PROJECT_ROOT, f)
+                if is_strict_path(full_path):
+                    if not run_mypy(full_path, True):
+                        failed = True
+
+            # If failed, block the tool
+            if failed:
+                print(json.dumps({
+                    "hookSpecificOutput": {
+                        "hookEventName": "PreToolUse",
+                        "permissionDecision": "deny",
+                        "permissionDecisionReason": "Type safety violations in strict directory."
+                    }
+                }))
+                sys.exit(0)
+            
+            sys.exit(0)
+
+    # 2. Check Edits (Edit/Write)
+    elif tool_name in ['Edit', 'Write']:
+        file_path = tool_input.get('file_path', '')
+        if file_path.endswith('.py') and is_strict_path(file_path):
+            print(json.dumps({
+                "systemMessage": f"""{YELLOW}⚠️  EDITING STRICT TYPE-SAFE FILE{NC}
+This file is in a STRICT zone ({', '.join(STRICT_DIRS)}).
+Any type errors will BLOCK commits.
+"""
+            }))
+            sys.exit(0)
+
+except Exception:
+    sys.exit(0)

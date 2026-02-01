@@ -23,14 +23,26 @@ Automatically improves user prompts using Claude's XML best practices before exe
 - **Hook**: `skill-suggestion.sh`
 - **Version**: 5.1.0
 
-### ccs-delegation
+### delegation
 
-Delegates deterministic tasks to cost-optimized models via CCS CLI.
+Unified task delegation system supporting both CCS (cost-optimized) and unitAI (multi-agent workflows).
 
-- **Invocation**: `/ccs [task]` or `use ccs [task]`
-- **Purpose**: Execute simple tasks (tests, refactors, typos, docs) on cheaper models
-- **Hook**: `skill-suggestion.sh`
-- **Version**: 5.0.0
+- **Invocation**: `/delegation [task]` or `/delegate [task]`
+- **Purpose**: Auto-selects optimal backend for task execution
+  - **CCS**: Simple tasks (tests, typos, docs) → GLM/Gemini/Qwen
+  - **unitAI**: Complex tasks (code review, feature dev, debugging) → Multi-agent workflows
+- **Hook**: `skill-suggestion.sh` (triggers on "delegate" keyword)
+- **Config**: `skills/delegation/config.yaml` (user-customizable patterns)
+- **Version**: 6.0.0
+
+**Key Features**:
+- Configuration-driven pattern matching
+- Autonomous workflow selection for unitAI
+- Interactive 2-step menu (Delegate? → Backend?)
+- Auto-focus detection (security/performance/quality)
+- Override flags (`--glm`, `--unitai`, etc.)
+
+**Deprecates**: `/ccs-delegation` (v5.0.0) - use `/delegation` instead
 
 ### serena-lsp-workflow
 

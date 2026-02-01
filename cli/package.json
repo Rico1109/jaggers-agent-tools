@@ -1,0 +1,21 @@
+{
+  "name": "jaggers-config-manager",
+  "version": "1.0.0",
+  "description": "Interactive CLI for managing Jaggers Agent Tools configuration",
+  "main": "index.js",
+  "type": "module",
+  "bin": {
+    "jaggers-config": "./index.js"
+  },
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "prompts": "^2.4.2",
+    "kleur": "^4.1.5",
+    "fs-extra": "^11.2.0",
+    "minimist": "^1.2.8",
+    "conf": "^12.0.0",
+    "comment-json": "^4.2.3"
+  }
+}
