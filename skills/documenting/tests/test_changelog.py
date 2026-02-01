@@ -5,6 +5,8 @@ import pytest
 from pathlib import Path
 from scripts.changelog.validate_changelog import validate_changelog
 from scripts.changelog.add_entry import add_entry, ChangeCategory
+from scripts.changelog.bump_release import bump_release
+from datetime import date
 import tempfile
 
 
@@ -156,3 +158,44 @@ def test_add_entry_maintains_category_order():
     fixed_idx = next(i for i, line in enumerate(lines) if "### Fixed" in line)
 
     assert added_idx < changed_idx < fixed_idx
+
+
+def test_bump_release_moves_unreleased():
+    """Bumping release should move [Unreleased] to [X.Y.Z] - DATE."""
+    changelog_content = """# Changelog
+
+## [Unreleased]
+
+### Added
+- New feature
+
+## [1.0.0] - 2026-01-01
+
+### Added
+- Initial release
+"""
+
+    result = bump_release(changelog_content, "1.1.0")
+
+    # Should have new version section
+    assert "## [1.1.0]" in result
+    assert f"## [1.1.0] - {date.today().strftime('%Y-%m-%d')}" in result
+
+    # New feature should be under 1.1.0 now
+    version_section = result.split("## [1.0.0]")[0]
+    assert "- New feature" in version_section
+
+    # [Unreleased] should be empty
+    unreleased_section = result.split("## [1.1.0]")[0]
+    assert "## [Unreleased]" in unreleased_section
+    # No ### categories under [Unreleased]
+    unreleased_lines = unreleased_section.split("## [Unreleased]")[1].split('\\n')
+    assert not any(line.startswith("###") for line in unreleased_lines)
+
+
+def test_bump_release_validates_semver():
+    """Bumping with invalid semver should raise error."""
+    changelog_content = "## [Unreleased]"
+
+    with pytest.raises(ValueError, match="semantic version"):
+        bump_release(changelog_content, "1.0")
