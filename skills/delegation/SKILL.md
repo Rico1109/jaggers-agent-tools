@@ -102,113 +102,177 @@ AskUserQuestion({
 
 ## Auto-Selection Logic
 
-### Backend Selection (Keyword-Based)
+**Configuration-Driven:** All pattern matching is defined in [config.yaml](config.yaml), not hardcoded.
 
-Simple keyword detection (no complex scoring, fast execution):
+### Configuration Structure
+
+The skill reads `config.yaml` to determine:
+1. **Available backends** (CCS profiles + unitAI workflows)
+2. **Pattern mappings** (task keywords → backend selection)
+3. **Priority order** (unitAI workflows checked before CCS)
+4. **Default fallback** (when no pattern matches)
+
+### Selection Algorithm
 
 ```javascript
-function selectBackend(task) {
+function selectBackend(task, config) {
   const taskLower = task.toLowerCase();
 
-  // Priority 1: unitAI workflows (complex tasks)
-  if (/review.*(code|security|quality)|code.*(review|audit)/.test(taskLower)) {
-    return { backend: 'unitai', autoSelectWorkflow: true };
+  // 1. Check override flags first (--glm, --unitai, etc.)
+  const override = parseOverrideFlag(task, config.override_flags);
+  if (override) return override;
+
+  // 2. Check patterns in priority order
+  for (const backendType of config.priority) {
+    const backends = config[backendType];
+
+    for (const [name, settings] of Object.entries(backends)) {
+      // Test each pattern for this backend
+      for (const pattern of settings.patterns) {
+        if (new RegExp(pattern, 'i').test(taskLower)) {
+          return {
+            backend: backendType === 'ccs_profiles' ? 'ccs' : 'unitai',
+            profile: backendType === 'ccs_profiles' ? name : undefined,
+            workflow: backendType === 'unitai_workflows' ? name : undefined,
+            params: settings.params,
+            reason: `Matched pattern: ${pattern}`
+          };
+        }
+      }
+    }
   }
 
-  if (/implement.*(feature|api|auth)|design.*implement/.test(taskLower)) {
-    return { backend: 'unitai', autoSelectWorkflow: true };
-  }
-
-  if (/validate.*(commit|staged)|pre.*commit/.test(taskLower)) {
-    return { backend: 'unitai', autoSelectWorkflow: true };
-  }
-
-  if (/debug|bug|investigate|crash|error.*unknown/.test(taskLower)) {
-    return { backend: 'unitai', autoSelectWorkflow: true };
-  }
-
-  // Priority 2: CCS simple tasks (fallback)
-  if (/typo|test|doc|format|lint|add type/.test(taskLower)) {
-    return { backend: 'ccs', profile: 'glm' };
-  }
-
-  if (/think|analyze|reason|evaluate/.test(taskLower)) {
-    return { backend: 'ccs', profile: 'gemini' };
-  }
-
-  // Default: cost-optimized
-  return { backend: 'ccs', profile: 'glm' };
+  // 3. No pattern matched, use default
+  return config.default;
 }
 ```
 
-**Override:** If task contains `--{backend}` flag, extract and use that backend/profile directly.
+### Auto-Focus Detection
 
-Examples:
-- `--glm` → Force CCS with GLM profile
-- `--gemini` → Force CCS with Gemini profile
-- `--unitai` → Force unitAI (Claude picks workflow)
+For workflows with `focus: auto` parameter, the skill detects focus from keywords:
+
+```javascript
+function detectFocus(task, config) {
+  const taskLower = task.toLowerCase();
+
+  for (const [focusType, settings] of Object.entries(config.auto_focus)) {
+    if (settings.keywords.some(kw => taskLower.includes(kw))) {
+      return focusType; // "security", "performance", "quality"
+    }
+  }
+
+  return 'quality'; // default
+}
+```
+
+### Override Flags
+
+Users can force specific backends via command-line flags:
+
+```bash
+/delegation --glm add tests        # Force CCS GLM
+/delegation --gemini analyze code  # Force CCS Gemini
+/delegation --unitai review code   # Force unitAI (auto-select workflow)
+/delegation --review check auth    # Force unitAI parallel-review workflow
+```
+
+Flags are defined in `config.yaml` under `override_flags`.
+
+---
+
+## Configuration
+
+### Config File Location
+
+**`skills/delegation/config.yaml`** - Source of truth for all delegation behavior.
+
+### Customizing Patterns
+
+Edit `config.yaml` to add/modify pattern mappings:
+
+```yaml
+ccs_profiles:
+  glm:
+    patterns:
+      - "typo|spelling"
+      - "test|unit.*test"
+      - "your-custom-pattern"  # Add your pattern
+```
+
+### Adding Custom Workflows
+
+Add new unitAI workflows to config:
+
+```yaml
+unitai_workflows:
+  your-workflow:
+    patterns:
+      - "your.*pattern"
+    cost: medium
+    params:
+      autonomyLevel: low
+    description: "Your workflow description"
+```
+
+### Fallback Behavior
+
+If `config.yaml` is missing or corrupted, the skill uses minimal hardcoded defaults:
+- CCS GLM for simple tasks
+- unitAI parallel-review for complex tasks
+
+**Recommendation:** Always keep `config.yaml` in sync with skill updates.
 
 ---
 
 ## unitAI Workflow Selection (Autonomous)
 
-When `backend: 'unitai'` is selected, **Claude autonomously** chooses the appropriate workflow based on task analysis.
+When `backend: 'unitai'` is selected (either via auto-selection or user choice), **Claude autonomously** chooses the appropriate workflow.
 
-### Workflow Selection Logic
+### Selection Process
+
+1. **Load config** - Read workflow definitions from `config.yaml`
+2. **Match patterns** - Already done by auto-selection (selected workflow from config)
+3. **Resolve auto params** - If params contain `auto`, detect from keywords:
+   - `focus: auto` → Detect security/performance/quality
+   - `architecturalFocus: auto` → Detect from context
+4. **Load unitAI tools** - `ToolSearch("unitAI")` to access MCP
+5. **Execute workflow** - `mcp__unitAI__workflow_{name}({ params })`
+
+### Auto-Parameter Resolution
+
+When workflow params contain `auto` values, resolve from task keywords:
+
+**Example: parallel-review with `focus: auto`**
+```javascript
+// Task: "review this code for security issues"
+// Config: { focus: auto }
+
+const keywords = extractKeywords(task);
+if (keywords.includes('security')) {
+  params.focus = 'security';
+} else if (keywords.includes('performance')) {
+  params.focus = 'performance';
+} else {
+  params.focus = 'quality'; // default
+}
+```
+
+See `config.yaml` → `auto_focus` section for keyword mappings.
+
+### Workflow Execution
 
 ```javascript
-function selectUnitAIWorkflow(task) {
-  const taskLower = task.toLowerCase();
+// 1. Workflow already selected from config pattern matching
+const { workflow, params } = selectedBackend;
 
-  // Code review patterns
-  if (/review|analyze.*code|code.*quality|audit/.test(taskLower)) {
-    const focus = /security/.test(taskLower) ? 'security' :
-                  /performance/.test(taskLower) ? 'performance' : 'quality';
-    return {
-      workflow: 'parallel-review',
-      params: { focus, autonomyLevel: 'read-only' }
-    };
-  }
+// 2. Resolve auto parameters
+const resolvedParams = resolveAutoParams(params, task, config);
 
-  // Feature development patterns
-  if (/implement.*feature|create.*endpoint|design.*implement/.test(taskLower)) {
-    return {
-      workflow: 'feature-design',
-      params: { autonomyLevel: 'high' }
-    };
-  }
+// 3. Execute via MCP
+const result = await mcp__unitAI__workflow_{workflow}(resolvedParams);
 
-  // Validation patterns
-  if (/validate|pre.*commit|check.*staged/.test(taskLower)) {
-    const depth = /paranoid|thorough/.test(taskLower) ? 'paranoid' : 'thorough';
-    return {
-      workflow: 'pre-commit-validate',
-      params: { depth, autonomyLevel: 'MEDIUM' }
-    };
-  }
-
-  // Debugging patterns
-  if (/debug|bug|crash|investigate/.test(taskLower)) {
-    return {
-      workflow: 'bug-hunt',
-      params: { autonomyLevel: 'MEDIUM' }
-    };
-  }
-
-  // Refactoring patterns
-  if (/refactor.*sprint|major.*refactor|migrate/.test(taskLower)) {
-    return {
-      workflow: 'refactor-sprint',
-      params: { depth: 'deep' }
-    };
-  }
-
-  // Default: comprehensive review
-  return {
-    workflow: 'parallel-review',
-    params: { focus: 'all', autonomyLevel: 'read-only' }
-  };
-}
+// 4. Report results
+return formatResults(result, workflow, resolvedParams);
 ```
 
 **Reference Consultation:**
@@ -301,7 +365,24 @@ If task is ambiguous or workflow selection unclear, consult [references/unitai-w
 
 ## Notes
 
-- **Version 6.0.0**: Unified CCS + unitAI backends with autonomous workflow selection
-- **Backward Compatible**: Use `/ccs` for direct CCS delegation (legacy)
-- **unitAI Details**: See [references/unitai-workflows.md](references/unitai-workflows.md) when needed
-- **Token Optimized**: Reference loaded on-demand, not included in every skill invocation
+### Version 6.0.0 - Configuration-Driven Delegation
+- **Unified backends**: CCS (cost-optimized) + unitAI (multi-agent workflows)
+- **Configuration-driven**: All behavior defined in `config.yaml`
+- **Autonomous workflow selection**: Claude picks optimal workflow based on config patterns
+- **User-customizable**: Edit config.yaml to add patterns or workflows
+
+### Migration from /ccs-delegation
+- **Old skill** (`/ccs-delegation`): Deprecated, hardcoded logic
+- **New skill** (`/delegation`): Replaces /ccs-delegation completely
+- **Config**: Standalone `config.yaml` in skill directory (not dependent on ~/.ccs/config.yaml)
+
+### References
+- **Workflow Details**: [references/unitai-workflows.md](references/unitai-workflows.md) - consulted when needed
+- **Config Schema**: See `config.yaml` for full structure and examples
+- **Token Optimized**: References loaded on-demand only
+
+### Customization Guide
+1. Edit `skills/delegation/config.yaml`
+2. Add/modify patterns under `ccs_profiles` or `unitai_workflows`
+3. Adjust `priority` order if needed
+4. Test with `/delegation [task]`

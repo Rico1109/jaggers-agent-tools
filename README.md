@@ -41,9 +41,9 @@ Master workflow combining Serena MCP semantic tools with LSP plugins for efficie
 - **Hook**: `serena-workflow-reminder.sh`
 - **Origin**: Serena MCP
 
-### serena-ssot-documentation
+### documenting
 
-Maintains Single Source of Truth documentation system for projects.
+Maintains Single Source of Truth (SSOT) documentation system for projects.
 
 - **Invocation**: Skill commands for memory management
 - **Purpose**: Create, update, validate SSOT documentation
@@ -85,6 +85,25 @@ Maintains Single Source of Truth documentation system for projects.
 
 ## Installation
 
+### Smart Installation (Recommended)
+
+Use the interactive Config Manager to automate installation, synchronization, and `settings.json` configuration.
+
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/jaggers-agent-tools.git
+cd jaggers-agent-tools
+
+# Run the manager
+npx ./cli
+```
+
+The Config Manager will:
+1. **Detect** your agent configuration path (`~/.claude`, `~/.gemini`, etc.).
+2. **Scan** for differences between the repo and your system.
+3. **Install/Update** skills and hooks using your preferred strategy (Copy or Symlink).
+4. **Configure** `settings.json` automatically to register hooks.
+
 ### Manual Installation
 
 1. Clone this repository:
@@ -103,47 +122,6 @@ Maintains Single Source of Truth documentation system for projects.
    cp hooks/* ~/.claude/hooks/
    chmod +x ~/.claude/hooks/*.sh
    ```
-
-4. Configure hooks in `~/.claude/settings.json`:
-   ```json
-   {
-     "hooks": {
-       "UserPromptSubmit": [{
-         "hooks": [{
-           "type": "command",
-           "command": "/home/user/.claude/hooks/skill-suggestion.sh",
-           "timeout": 1
-         }]
-       }],
-       "PreToolUse": [{
-         "matcher": "Bash",
-         "hooks": [{
-           "type": "command",
-           "command": "/bin/bash /home/user/.claude/hooks/pip-venv-guard.sh",
-           "timeout": 3
-         }]
-       }]
-     },
-     "skillSuggestions": {
-       "enabled": true
-     }
-   }
-   ```
-
-### Symlink Installation (Recommended)
-
-Maintain live connection to repository for easy updates:
-
-```bash
-# Skills
-ln -s /path/to/jaggers-agent-tools/skills/prompt-improving ~/.claude/skills/
-ln -s /path/to/jaggers-agent-tools/skills/ccs-delegation ~/.claude/skills/
-
-# Hooks
-for hook in /path/to/jaggers-agent-tools/hooks/*; do
-  ln -s "$hook" ~/.claude/hooks/
-done
-```
 
 ## Configuration
 
@@ -201,11 +179,12 @@ jaggers-agent-tools/
 ├── README.md                    # This file
 ├── CHANGELOG.md                 # Version history
 ├── ROADMAP.md                   # Future plans
+├── cli/                         # Config Manager CLI
 ├── skills/
 │   ├── prompt-improving/        # Prompt improvement skill
 │   ├── ccs-delegation/          # Task delegation skill
 │   ├── serena-lsp-workflow/     # Serena LSP workflow
-│   └── serena-ssot-documentation/ # Serena SSOT system
+│   └── documenting/             # Serena SSOT system
 └── hooks/
     ├── README.md                # Hooks documentation
     ├── skill-suggestion.sh      # Skill auto-suggestion
