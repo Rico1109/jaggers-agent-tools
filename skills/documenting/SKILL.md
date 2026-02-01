@@ -108,6 +108,113 @@ bash scripts/list_by_category.sh ssot
 bash scripts/list_by_category.sh pattern
 ```
 
+### 5. Document a Completed Change (NEW)
+
+**When**: After completing and verifying a feature, bugfix, or refactor
+
+**Interactive Mode (Recommended)**:
+
+1. **Use the orchestrator**:
+   ```bash
+   python3 scripts/orchestrator.py . feature "Description of change" \
+     --scope=component-name \
+     --category=domain
+   ```
+
+2. **Review suggestions**:
+   - Orchestrator will update CHANGELOG.md automatically
+   - Provides suggestions for README.md updates
+   - Provides suggestions for CLAUDE.md updates
+   - Creates/updates SSOT memory if relevant
+
+3. **Apply manual updates**:
+   - Review and apply README suggestions
+   - Review and apply CLAUDE.md suggestions
+   - Validate all changes
+
+**Manual Mode**:
+
+1. **Update CHANGELOG.md**:
+   ```bash
+   python3 scripts/changelog/add_entry.py CHANGELOG.md Added "New feature description"
+   ```
+
+2. **Update SSOT** (if architectural change):
+   ```bash
+   python3 scripts/generate_template.py ssot .serena/memories/ssot_domain_component_2026-02-01.md \
+     title="Component SSOT" \
+     scope="domain-component" \
+     domain="domain"
+   # Edit the generated file
+   ```
+
+3. **Update README.md** (if user-facing change):
+   - Add to ## Features section
+   - Update ## Usage examples
+   - Update ## Installation if needed
+
+4. **Update CLAUDE.md** (if architecture/setup changed):
+   - Update ## Architecture section
+   - Update ## Development Environment
+   - Update ## Key Files & Directories
+
+5. **Validate all documentation**:
+   ```bash
+   python3 scripts/orchestrator.py . validate
+   ```
+
+### 6. Release a New Version (NEW)
+
+**Workflow**:
+
+1. **Ensure all changes documented**:
+   ```bash
+   # Check [Unreleased] section has content
+   grep -A 20 "## \[Unreleased\]" CHANGELOG.md
+   ```
+
+2. **Bump CHANGELOG version**:
+   ```bash
+   python3 scripts/changelog/bump_release.py CHANGELOG.md 1.2.0
+   ```
+
+3. **Update version in project files**:
+   - `pyproject.toml` / `package.json`
+   - `__init__.py` / version files
+   - SSOT memory versions (if applicable)
+
+4. **Validate**:
+   ```bash
+   python3 scripts/changelog/validate_changelog.py CHANGELOG.md
+   ```
+
+5. **Commit and tag**:
+   ```bash
+   git add CHANGELOG.md [other version files]
+   git commit -m "chore: release v1.2.0"
+   git tag -a v1.2.0 -m "Release 1.2.0"
+   git push && git push --tags
+   ```
+
+## Change Type Classification
+
+Use orchestrator with these change types:
+
+- **feature**: New functionality
+- **bugfix**: Bug corrections
+- **refactor**: Code restructuring (no behavior change)
+- **breaking**: Breaking API changes
+- **docs**: Documentation-only changes
+- **chore**: Maintenance tasks
+
+Maps to CHANGELOG categories:
+- feature → Added
+- bugfix → Fixed
+- refactor → Changed
+- breaking → Changed (with **BREAKING** prefix)
+- docs → Changed
+- chore → Changed
+
 ## Naming Conventions
 
 Files must follow: `[category]_[domain]_[subdomain]_[date].md`
