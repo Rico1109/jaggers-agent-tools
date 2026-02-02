@@ -35,7 +35,7 @@ Delegate tasks to cost-optimized models (CCS) or multi-agent workflows (unitAI).
 
 ### Step 1: Delegation Choice
 ```typescript
-AskUserQuestion({
+ask_user({
   questions: [{
     question: "This task can be delegated. How would you like to proceed?",
     header: "Execution",
@@ -59,7 +59,7 @@ AskUserQuestion({
 
 ### Step 2: Backend Selection
 ```typescript
-AskUserQuestion({
+ask_user({
   questions: [{
     question: "Which backend should handle this task?",
     header: "Backend",

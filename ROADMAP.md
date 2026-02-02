@@ -164,13 +164,13 @@ AskUserQuestion({
 
 ---
 
-## `ccs-delegation` Skill
+## `delegating` Skill
 
-### Current State (v5.0.0)
-- ✅ Simplified from 486 to 151 lines
-- ✅ Keyword-based profile selection
-- ✅ AskUserQuestion menus preserved
-- ✅ Bilingual IT+EN support
+### Current State (v6.0.0)
+- ✅ Unified CCS + unitAI backend support
+- ✅ Configuration-driven patterns (`config.yaml`)
+- ✅ Auto-focus detection
+- ✅ Replaces legacy `/ccs-delegation`
 
 ### Future Enhancements
 
@@ -281,7 +281,7 @@ AskUserQuestion({
 ## Contributing
 
 Suggest roadmap items by creating issues in:
-- `~/.claude/docs/plans/skill-roadmap.md` (this file)
+- `ROADMAP.md` (this file)
 - Or discuss in `.serena/memories/skills-evolution.md`
 
 ---

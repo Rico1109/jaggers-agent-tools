@@ -26,7 +26,7 @@ This document captures the complete migration from shell-based hooks to Python-b
 
 **Status**: ✅ Completed on 2026-02-01
 
-**Motivation**: 
+**Motivation**:
 - Better error handling and maintainability
 - Consistent execution across platforms
 - Easier integration with Python-based tooling
@@ -171,15 +171,21 @@ data/
 └── audit.sqlite    # Audit logging database
 ```
 
-### 7. Configuration Directory
+### 8. Gemini Support Integration
+**Status**: ✅ Completed on 2026-02-02
 
-**Added**:
-```
-config/
-└── (configuration files - structure TBD)
-```
+**Motivation**:
+- Support for Gemini CLI agent environments
+- Dynamic configuration generation
+- Incompatibility resolution between Claude/Gemini configs
 
-## Version History
+**Changes**:
+- **CLI Sync**: Added `transformGeminiConfig` logic
+- **Transformer**: Maps Claude events to Gemini equivalents
+  - `UserPromptSubmit` → `BeforeAgent`
+  - `PreToolUse` → `BeforeTool`
+- **Pathing**: Dynamic rewriting of `.claude` paths to `~/.gemini`
+- **Filtering**: Removal of unsupported fields (`permissions`, `plugins`)
 
 | Version | Date       | Changes |
 |---------|-----------|---------|

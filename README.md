@@ -66,24 +66,24 @@ Maintains Single Source of Truth (SSOT) documentation system for projects.
 
 ### Skill-Associated Hooks
 
-**skill-suggestion.sh**
-- Skills: `prompt-improving`, `ccs-delegation`
+**skill-suggestion.py**
+- Skills: `prompt-improving`, `delegating`
 - Trigger: UserPromptSubmit
 - Purpose: Proactive skill suggestions based on prompt analysis
 - Config: `settings.json` → `skillSuggestions.enabled: true`
 
-**serena-workflow-reminder.sh**
+**serena-workflow-reminder.py**
 - Skill: `serena-lsp-workflow`
 - Trigger: PreToolUse (Read|Edit|Grep)
 - Purpose: Remind to use Serena semantic tools
 
 ### Standalone Hooks
 
-**pip-venv-guard.sh**
+**pip-venv-guard.py**
 - Trigger: PreToolUse (Bash)
 - Purpose: Prevent `pip install` outside virtual environments
 
-**type-safety-enforcement.sh**
+**type-safety-enforcement.py**
 - Trigger: PreToolUse (Bash)
 - Purpose: Enforce type safety in Python code
 
@@ -114,7 +114,7 @@ The Config Manager will:
 1. **Detect** your agent configuration path (`~/.claude`, `~/.gemini`, etc.).
 2. **Scan** for differences between the repo and your system.
 3. **Install/Update** skills and hooks using your preferred strategy (Copy or Symlink).
-4. **Configure** `settings.json` automatically to register hooks.
+4. **Configure** `settings.json` automatically to register hooks (supports both Claude and Gemini formats).
 
 ### Manual Installation
 
@@ -171,7 +171,7 @@ Adjust hook execution timeouts in `settings.json`:
 - [CHANGELOG.md](CHANGELOG.md) - Version history and breaking changes
 - [ROADMAP.md](ROADMAP.md) - Future enhancements and planned features
 - [skills/prompt-improving/README.md](skills/prompt-improving/README.md) - Detailed skill documentation
-- [skills/ccs-delegation/README.md](skills/ccs-delegation/README.md) - Delegation workflow guide
+- [skills/delegating/SKILL.md](skills/delegating/SKILL.md) - Delegation workflow guide
 - [hooks/README.md](hooks/README.md) - Complete hooks reference
 
 ## Version History
@@ -194,15 +194,15 @@ jaggers-agent-tools/
 ├── cli/                         # Config Manager CLI
 ├── skills/
 │   ├── prompt-improving/        # Prompt improvement skill
-│   ├── ccs-delegation/          # Task delegation skill
+│   ├── delegating/              # Task delegation skill
 │   ├── serena-lsp-workflow/     # Serena LSP workflow
 │   └── documenting/             # Serena SSOT system
 └── hooks/
     ├── README.md                # Hooks documentation
-    ├── skill-suggestion.sh      # Skill auto-suggestion
-    ├── pip-venv-guard.sh        # Venv enforcement
-    ├── serena-workflow-reminder.sh # Serena reminder
-    ├── type-safety-enforcement.sh # Type safety
+    ├── skill-suggestion.py      # Skill auto-suggestion
+    ├── pip-venv-guard.py        # Venv enforcement
+    ├── serena-workflow-reminder.py # Serena reminder
+    ├── type-safety-enforcement.py # Type safety
     ├── statusline.js            # Status line display
     └── gsd-check-update.js      # GSD updates
 ```

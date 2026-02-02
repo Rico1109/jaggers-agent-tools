@@ -1,6 +1,7 @@
 import path from 'path';
 import fs from 'fs-extra';
 import kleur from 'kleur';
+import { transformGeminiConfig } from './transform-gemini.js';
 
 /**
  * Execute a sync plan based on changeset and mode
@@ -14,9 +15,11 @@ export async function executeSync(repoRoot, systemRoot, changeSet, mode, actionT
         'config/settings.json': { repo: 'config/settings.json', sys: 'settings.json' }
     };
 
+    const isClaude = systemRoot.includes('.claude') || systemRoot.includes('Claude');
+
     for (const category of categories) {
         const itemsToProcess = [];
-        
+
         if (actionType === 'sync') {
             itemsToProcess.push(...changeSet[category].missing);
             itemsToProcess.push(...changeSet[category].outdated);
@@ -25,12 +28,14 @@ export async function executeSync(repoRoot, systemRoot, changeSet, mode, actionT
         }
 
         for (const item of itemsToProcess) {
+            // Previously skipped settings.json for non-Claude here. Removed to allow Gemini processing.
+
             let src, dest;
 
             if (category === 'config') {
                 // Special handling for config files
                 const mapping = fileMapping[`config/${item}`] || { repo: `config/${item}`, sys: item };
-                
+
                 if (actionType === 'backport') {
                     src = path.join(systemRoot, mapping.sys);
                     dest = path.join(repoRoot, mapping.repo);
@@ -42,7 +47,7 @@ export async function executeSync(repoRoot, systemRoot, changeSet, mode, actionT
                 // Standard folders (skills/hooks)
                 const repoPath = path.join(repoRoot, category);
                 const systemPath = path.join(systemRoot, category);
-                
+
                 if (actionType === 'backport') {
                     src = path.join(systemPath, item);
                     dest = path.join(repoPath, item);
@@ -60,7 +65,13 @@ export async function executeSync(repoRoot, systemRoot, changeSet, mode, actionT
                 console.log(kleur.gray(`      (Backup created: ${path.basename(dest)}.bak)`));
             }
 
-            if (mode === 'symlink' && actionType === 'sync') {
+            if (category === 'config' && item === 'settings.json' && !isClaude && actionType === 'sync') {
+                // Transform for Gemini: generate compatible config and write it
+                const configContent = await fs.readJson(src);
+                const transformedConfig = transformGeminiConfig(configContent, systemRoot);
+                await fs.remove(dest);
+                await fs.writeJson(dest, transformedConfig, { spaces: 2 });
+            } else if (mode === 'symlink' && actionType === 'sync') {
                 await fs.remove(dest);
                 await fs.ensureSymlink(src, dest);
             } else {
