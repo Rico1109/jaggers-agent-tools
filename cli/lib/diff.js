@@ -46,12 +46,9 @@ export async function calculateDiff(repoRoot, systemRoot) {
     const changeSet = {
         skills: { missing: [], outdated: [], drifted: [], total: 0 },
         hooks: { missing: [], outdated: [], drifted: [], total: 0 },
-        config: { missing: [], outdated: [], drifted: [], total: 0 }
+        config: { missing: [], outdated: [], drifted: [], total: 0 },
+        commands: { missing: [], outdated: [], drifted: [], total: 0 }
     };
-
-    if (!isClaude) {
-        changeSet.commands = { missing: [], outdated: [], drifted: [], total: 0 };
-    }
 
     // 1. Folders: Skills & Hooks & Commands (for Gemini)
     const folders = ['skills', 'hooks'];
