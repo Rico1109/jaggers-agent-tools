@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fix hook execution timeouts by updating settings.json to use milliseconds and enhancing transform-gemini.js to handle unit mismatches and improve hook naming.
+- Prevent redundant auto-generation of commands for core skills in CLI
 ## [6.0.0] - 2026-02-01
 
 ### Added
