@@ -110,28 +110,29 @@ Maintains Single Source of Truth (SSOT) documentation system for projects.
 
 ## Installation
 
-### Smart Installation (Recommended)
+### 🚀 Zero-Cloning Installation (Recommended)
 
-Use the interactive Config Manager to automate installation, synchronization, and `settings.json` configuration.
+The fastest way to install or update the entire suite of tools on any machine is using `npx`. This method doesn't require you to clone the repository manually.
 
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/jaggers-agent-tools.git
-cd jaggers-agent-tools
-
-# Run the manager
-npx ./cli
+npx -y github:Jaggerxtrm/jaggers-agent-tools
 ```
 
-The Config Manager will:
-1. **Detect** your agent configuration path (`~/.claude`, `~/.gemini`, etc.).
-2. **Scan** for differences between the repo and your system.
-3. **Install/Update** skills and hooks using your preferred strategy (Copy or Symlink).
-4. **Vault Sync (New)**: Protects your local secrets (MCP API keys, OAuth tokens) during synchronization. It performs a non-destructive merge where local secrets are preserved and new repository features are added atomically.
-5. **Dry Run**: Support for `--dry-run` flag to preview changes without modifying files.
-6. **Configure** `settings.json` automatically to register hooks (supports both Claude and Gemini formats).
-7. **Sync Gemini Commands**: Synchronizes custom slash commands from `.gemini/commands/` to the Gemini environment.
-8. **Auto-Command Generation**: Automatically transforms `SKILL.md` files into Gemini `.toml` command files during synchronization.
+**What this does:**
+1. **Auto-Detects**: Searches for `~/.claude`, `~/.gemini`, and other agent environments.
+2. **Interactive Sync**: Prompts you to select which environments to update.
+3. **Cross-Agent**: Installs skills, hooks, and automatically generates specialized slash commands.
+4. **Vault Protection**: Safely merges your `settings.json` while preserving local secrets and MCP configurations.
+
+---
+
+### 🛠️ Smart Local Installation
+
+If you have already cloned the repository, use the local Config Manager:
+
+```bash
+npx ./cli
+```
 
 ### Manual Installation
 

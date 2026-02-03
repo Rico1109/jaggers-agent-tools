@@ -25,13 +25,13 @@ The Jaggers Agent Tools installer (`jaggers-config-manager`) is a Node.js-based 
 
 ## Distribution Models
 
-### 1. Zero-Cloning (Remote Execution)
-Enabled by the root `package.json`, this model allows users to install or update the entire suite without a local `git clone`.
-- **Command**: `npx github:Jaggerxtrm/jaggers-agent-tools`
-- **Mechanism**: `npm` caches the repository and executes the `bin` entry point (`./cli/index.js`).
+### 1. Zero-Cloning (Primary Method)
+The suite is distributed as a self-installing package via `npx`. This ensures that all users receive the latest skills, hooks, and commands without manual repository management.
+- **Command**: `npx -y github:Jaggerxtrm/jaggers-agent-tools`
+- **Mechanism**: `npm` fetches the repository, installs dependencies in a temporary cache, and executes the `bin` entry point defined in the root `package.json`.
 
-### 2. Local Sync
-Standard model for development or manual updates.
+### 2. Local Development Sync
+Used for developing new tools or manual synchronization of a cloned repository.
 - **Command**: `npx ./cli`
 
 ## Core Logic (`cli/lib/`)

@@ -21,10 +21,11 @@
 
 ## Common Commands
 
-### CLI Development
-- `cd cli && npm install` - Install dependencies
-- `npx ./cli` - Run config manager (from root)
+### Installation
+- `npx github:Jaggerxtrm/jaggers-agent-tools` - Zero-cloning install/update (Recommended)
+- `npx ./cli` - Run local config manager (from root)
 - `node cli/index.js --reset` - Reset CLI context/config
+- `npx ./cli --dry-run` - Preview changes without writing to disk
 
 ### Hook Testing
 - `python3 hooks/skill-suggestion.py` - Test hook logic manually
