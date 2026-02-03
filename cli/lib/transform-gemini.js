@@ -50,7 +50,23 @@ function transformHookDefinition(claudeDef, targetDir) {
     };
 
     if (claudeDef.matcher) {
-        geminiDef.matcher = claudeDef.matcher;
+        // Transform matchers: Read -> read_file, Write -> write_file, Edit -> replace, Bash -> run_shell_command
+        let matcher = claudeDef.matcher;
+        const toolMap = {
+            'Read': 'read_file',
+            'Write': 'write_file',
+            'Edit': 'replace',
+            'Bash': 'run_shell_command'
+        };
+
+        // Replace each tool name in the matcher (handling | separated values)
+        for (const [claudeTool, geminiTool] of Object.entries(toolMap)) {
+            // Use regex with word boundary to avoid partial matches
+            const regex = new RegExp(`\\b${claudeTool}\\b`, 'g');
+            matcher = matcher.replace(regex, geminiTool);
+        }
+        
+        geminiDef.matcher = matcher;
     }
 
     // Transform individual hooks within the definition
