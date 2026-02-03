@@ -1,6 +1,16 @@
 ---
 name: orchestrating-agents
 description: Orchestrates task handoff and "handshaking" between Gemini and Qwen CLI agents. Facilitates specialized reviews, second opinions, and cross-validation of complex logic. Use when a task requires multi-model collaboration, a second LLM perspective, or iterative feedback between terminal agents.
+gemini-command: orchestrate
+gemini-prompt: |
+  1. First, detect available neighbors.
+  2. Select the appropriate workflow:
+     - Single Handshake (Quick review)
+     - Collaborative Design (New features)
+     - Adversarial Review (Security/Bugs)
+     - Troubleshoot Session (Emergency)
+  3. Execute the turns defined in the skill protocol.
+  4. Ingest the final results.
 ---
 
 # Orchestrating Agents

@@ -78,25 +78,40 @@ export async function transformSkillToCommand(skillMdPath) {
     try {
         const content = await fs.readFile(skillMdPath, 'utf8');
         
+        // Extract frontmatter
         const frontmatterMatch = content.match(/^---([\s\S]+?)---/);
         if (!frontmatterMatch) return null;
         
         const frontmatter = frontmatterMatch[1];
         
+        // Extract required and optional fields
         const nameMatch = frontmatter.match(/name:\s*(.+)/);
         const descMatch = frontmatter.match(/description:\s*(.+)/);
+        const geminiCmdMatch = frontmatter.match(/gemini-command:\s*(.+)/);
+        const geminiPromptMatch = frontmatter.match(/gemini-prompt:\s*\|?\s*\n?([\s\S]+?)(?=\n[a-z- ]+:|$)/);
         
         if (!nameMatch || !descMatch) return null;
         
         const name = nameMatch[1].trim();
         const description = descMatch[1].trim();
+        const commandName = geminiCmdMatch ? geminiCmdMatch[1].trim() : name;
+        
+        let promptBody = `Use the ${name} skill to handle this: {{args}}`;
+        if (geminiPromptMatch) {
+            // Indent the extra prompt lines properly if they aren't already
+            const extraLines = geminiPromptMatch[1].trim();
+            promptBody = `Use the ${name} skill to handle this request: {{args}}\n\n${extraLines}`;
+        }
         
         const toml = `description = """${description}"""
 prompt = """
-Use the ${name} skill to handle this: {{args}}
+${promptBody}
 """
 `;
-        return toml;
+        return {
+            toml,
+            commandName
+        };
     } catch (error) {
         console.error(`Error transforming skill to command: ${error.message}`);
         return null;

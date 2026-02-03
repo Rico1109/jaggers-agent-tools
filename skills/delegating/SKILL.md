@@ -4,6 +4,13 @@ description: >-
   Delegate tasks to cost-optimized models (CCS) or multi-agent workflows (unitAI).
   Use when the user asks to "delegate" a task, or for simple deterministic tasks (typos, tests),
   complex code reviews, or large-scale refactoring that can be offloaded.
+gemini-command: delegate
+gemini-prompt: |
+  1. Analyze the task for keywords:
+     - simple tasks (typo, test, doc, format) -> CCS
+     - complex tasks (review, implement feature, debug) -> unitAI
+  2. If ambiguous, use ask_user to confirm the execution path (Delegate vs Main Session).
+  3. Execute via the optimal backend and report results including backend type and cost indicator.
 version: 6.0.0
 ---
 

@@ -1,9 +1,0 @@
-description = "Create, update, or validate SSOT documentation and project memories."
-prompt = """
-Use the documenting skill to handle this request: {{args}}
-
-1. Identify the task: Create new memory, Update existing, or Validate compliance.
-2. For finalizing changes, use the orchestrator script to update CHANGELOG.md and README.md.
-3. Ensure SSOT memories are stored in .serena/memories/ with correct naming conventions.
-4. Validate YAML frontmatter metadata before completing the task.
-"""

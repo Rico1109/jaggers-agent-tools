@@ -5,6 +5,12 @@ description: >-
   validate project memories/documentation. Agent MUST suggest this skill when
   users ask to "document" or "update ssot", OR automatically when a
   feature/fix is verified and ready for documentation.
+gemini-command: document
+gemini-prompt: |
+  1. Identify the task: Create new memory, Update existing, or Validate compliance.
+  2. For finalizing changes, use the orchestrator script to update CHANGELOG.md and README.md.
+  3. Ensure SSOT memories are stored in .serena/memories/ with correct naming conventions.
+  4. Validate YAML frontmatter metadata before completing the task.
 version: 2.0.0
 ---
 

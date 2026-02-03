@@ -76,7 +76,11 @@ export async function executeSync(repoRoot, systemRoot, changeSet, mode, actionT
           }
 
           // Use safe merge to preserve protected keys in local config
-          const mergeResult = await safeMergeConfig(dest, finalRepoConfig, {\n            backupOnSuccess: true,\n            preserveComments: true,\n            dryRun: isDryRun\n          });
+          const mergeResult = await safeMergeConfig(dest, finalRepoConfig, {
+            backupOnSuccess: true,
+            preserveComments: true,
+            dryRun: isDryRun
+          });
 
           if (mergeResult.updated) {
             console.log(kleur.blue(`      (Configuration safely merged with protected keys preserved)`));
@@ -106,7 +110,6 @@ export async function executeSync(repoRoot, systemRoot, changeSet, mode, actionT
           }
         }
       } else if (category === 'config' && item === 'settings.json' && !isClaude && actionType === 'sync') {
-        // This is the original logic for reference - now handled above
         const configContent = await fs.readJson(src);
         const transformedConfig = transformGeminiConfig(configContent, systemRoot);
 
@@ -128,30 +131,18 @@ export async function executeSync(repoRoot, systemRoot, changeSet, mode, actionT
 
       // Automatic Skill -> Command transformation for Gemini
       if (category === 'skills' && !isClaude && actionType === 'sync') {
-        // Skills that have specialized manual commands in .gemini/commands/
-        const specializedSkills = {
-          'orchestrating-agents': 'orchestrate',
-          'delegating': 'delegate',
-          'documenting': 'document',
-          'prompt-improving': 'prompt'
-        };
+        const skillMdPath = path.join(src, 'SKILL.md');
+        if (fs.existsSync(skillMdPath)) {
+          const result = await transformSkillToCommand(skillMdPath);
+          if (result) {
+            const { toml, commandName } = result;
+            const commandDest = path.join(systemRoot, 'commands', `${commandName}.toml`);
 
-        const skillName = item.endsWith('.skill') ? item.replace('.skill', '') : item;
-
-        // Skip auto-generation if a specialized manual command exists
-        if (!specializedSkills[skillName]) {
-          const skillMdPath = path.join(src, 'SKILL.md');
-          if (fs.existsSync(skillMdPath)) {
-            const tomlContent = await transformSkillToCommand(skillMdPath);
-            if (tomlContent) {
-              const commandDest = path.join(systemRoot, 'commands', `${skillName}.toml`);
-
-              if (!isDryRun) {
-                await fs.ensureDir(path.dirname(commandDest));
-                await fs.writeFile(commandDest, tomlContent);
-              }
-              console.log(kleur.cyan(`      (Auto-generated slash command: /${skillName})`));
+            if (!isDryRun) {
+              await fs.ensureDir(path.dirname(commandDest));
+              await fs.writeFile(commandDest, toml);
             }
+            console.log(kleur.cyan(`      (Auto-generated slash command: /${commandName})`));
           }
         }
       }

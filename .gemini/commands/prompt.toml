@@ -1,9 +1,0 @@
-description = "Improve a raw prompt using Claude's XML best practices and semantic structure."
-prompt = """
-Use the prompt-improving skill to handle this request: {{args}}
-
-1. Detect context: ANALYSIS (thinking), DEV (examples), or REFACTOR (constraints).
-2. Apply core XML tags (<description>, <parameters>, <instructions>).
-3. Add enhancements (Chain of Thought, Multishot examples) based on context.
-4. Execute ONLY the improved prompt version.
-"""

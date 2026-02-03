@@ -1,6 +1,12 @@
 ---
 name: prompt-improving
 description: Prompt Improver (Trigger: /prompt-improving "raw prompt"). Applies Claude XML best practices to user prompts before execution. Use when the user specifically invokes /prompt-improving.
+gemini-command: prompt
+gemini-prompt: |
+  1. Detect context: ANALYSIS (thinking), DEV (examples), or REFACTOR (constraints).
+  2. Apply core XML tags (<description>, <parameters>, <instructions>).
+  3. Add enhancements (Chain of Thought, Multishot examples) based on context.
+  4. Execute ONLY the improved prompt version.
 ---
 
 # Prompt Improver ( /prompt-improving )
