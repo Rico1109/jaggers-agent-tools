@@ -76,7 +76,7 @@ export async function calculateDiff(repoRoot, systemRoot) {
     const isClaude = systemRoot.includes('.claude') || systemRoot.includes('Claude');
 
     for (const [name, paths] of Object.entries(configMapping)) {
-        if (name === 'settings.json' && !isClaude) continue;
+        // if (name === 'settings.json' && \!isClaude) continue;
 
         const itemRepoPath = path.join(repoRoot, paths.repo);
         const itemSystemPath = path.join(systemRoot, paths.sys);
