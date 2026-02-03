@@ -18,16 +18,16 @@ Custom skills, hooks, and commands for Claude Code. This repository contains pro
 
 Automatically improves user prompts using Claude's XML best practices before execution.
 
-- **Invocation**: `/prompt-improving "raw prompt"`
+- **Invocation**: `/prompt [prompt]` or `/prompt-improving [prompt]`
 - **Purpose**: Applies semantic XML structure, multishot examples, and chain-of-thought patterns
-- **Hook**: `skill-suggestion.sh`
+- **Hook**: `skill-suggestion.py`
 - **Version**: 5.1.0
 
-### delegation
+### delegating
 
 Unified task delegation system supporting both CCS (cost-optimized) and unitAI (multi-agent workflows).
 
-- **Invocation**: `/delegation [task]` or `/delegate [task]`
+- **Invocation**: `/delegate [task]` or `/delegating [task]`
 - **Purpose**: Auto-selects optimal backend for task execution
   - **CCS**: Simple tasks (tests, typos, docs) → GLM/Gemini/Qwen
   - **unitAI**: Complex tasks (code review, feature dev, debugging) → Multi-agent workflows
@@ -70,7 +70,7 @@ Master workflow combining Serena MCP semantic tools with LSP plugins for efficie
 
 Maintains Single Source of Truth (SSOT) documentation system for projects.
 
-- **Invocation**: Skill commands for memory management
+- **Invocation**: `/document [task]` or skill commands
 - **Purpose**: Create, update, validate SSOT documentation
 - **Hook**: None
 - **Origin**: Serena MCP

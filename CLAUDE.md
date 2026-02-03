@@ -36,7 +36,7 @@
 
 ## Gemini Support
 - The CLI automatically detects `~/.gemini` environments.
-- `/orchestrate` command is available via `.gemini/commands/orchestrate.toml`.
+- **Slash Commands**: Specialized commands available: `/orchestrate`, `/delegate`, `/document`, `/prompt`.
 - **Command Sync**: Syncs custom slash commands from `.gemini/commands/`.
 - **Auto-Command Generation**: Automatically transforms `SKILL.md` into Gemini `.toml` command files during sync.
 - `settings.json` is dynamically transformed for Gemini compatibility:
