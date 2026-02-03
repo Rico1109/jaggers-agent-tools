@@ -46,12 +46,16 @@ Unified task delegation system supporting both CCS (cost-optimized) and unitAI (
 
 ### orchestrating-agents
 
-Orchestrates task handoff and "handshaking" between Gemini and Qwen CLI agents for specialized reviews or second opinions.
+Orchestrates task handoff and deep multi-turn "handshaking" sessions between Gemini and Qwen CLI agents.
 
 - **Invocation**: `/orchestrate [task]`
-- **Purpose**: Facilitates multi-model collaboration and cross-validation of complex logic.
-- **Hook**: None (Direct slash command via `.gemini/commands/orchestrate.toml`)
-- **Version**: 1.0.0
+- **Purpose**: Facilitates multi-model collaboration, adversarial reviews, and deep troubleshooting.
+- **Workflows**:
+  - **Collaborative Design**: Proposal -> Critique -> Refinement (for features).
+  - **Adversarial Review**: Proposal -> Red Team Attack -> Defense (for security).
+  - **Troubleshoot Session**: Multi-agent hypothesis testing (for emergencies).
+- **Hook**: None (Direct slash command)
+- **Version**: 1.1.0
 
 ### using-serena-lsp
 
@@ -189,6 +193,8 @@ Adjust hook execution timeouts in `settings.json`:
 
 | Version | Date       | Highlights                             |
 | ------- | ---------- | -------------------------------------- |
+| 1.1.0   | 2026-02-03 | Orchestrating-agents multi-turn loops  |
+| 1.0.0   | 2026-02-03 | Initial orchestrating-agents & CLI     |
 | 5.1.0   | 2026-01-30 | Renamed `p` to `prompt-improving`      |
 | 5.0.0   | 2026-01-30 | Major refactoring, 90% token reduction |
 | 4.2.0   | Pre-2026   | Feature-rich baseline (155KB)          |

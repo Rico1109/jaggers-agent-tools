@@ -5,33 +5,64 @@ description: Orchestrates task handoff and "handshaking" between Gemini and Qwen
 
 # Orchestrating Agents
 
-This skill provides a structured workflow for delegating sub-tasks to neighboring agents (Gemini or Qwen) and iteratively refining their feedback.
+This skill provides a structured workflow for multi-model collaboration between Gemini and Qwen, enabling deep "handshaking" sessions for complex tasks.
 
-## Handshake Workflow
+## Interactive Orchestration
 
-Copy this checklist and track your progress:
+When a task involves high complexity (new features, deep bugs, or "getting out of trouble"), suggest a multi-turn orchestration session:
 
+```typescript
+ask_user({
+  questions: [{
+    question: "This task requires deep collaboration. Which orchestration workflow should we use?",
+    header: "Orchestrate",
+    multiSelect: false,
+    options: [
+      {
+        label: "Collaborative Design",
+        description: "Agent A proposes -> Agent B critiques -> Agent A refines. [Features]"
+      },
+      {
+        label: "Adversarial Review",
+        description: "Agent A proposes -> Agent B attacks (Red Team) -> Agent A defends. [Security]"
+      },
+      {
+        label: "Troubleshoot Session",
+        description: "Multi-agent hypothesis testing for emergency bugs. [Trouble]"
+      },
+      {
+        label: "Single Handshake",
+        description: "Standard one-turn second opinion."
+      }
+    ]
+  }]
+});
 ```
-Handshake Progress:
-- [ ] Step 1: Detect available agents (run detect_neighbors.py)
-- [ ] Step 2: Prepare context and initial query
-- [ ] Step 3: Execute Phase 1 (Initial Proposal)
-- [ ] Step 4: Execute Phase 2 (Handshake/Refinement)
-- [ ] Step 5: Ingest feedback (via AgentContext)
-```
 
-## Protocol Reference
+## Workflows
 
+### 1. Handshake Protocol (Standard)
 | Agent | Initial Command | Follow-up (Handshake) |
 | :--- | :--- | :--- |
 | **Gemini** | `gemini -p "..."` | `gemini --resume latest -p "..."` |
 | **Qwen** | `qwen "..."` | `qwen -c "..."` |
 
+### 2. Multi-Turn Loops
+For complex scenarios, follow the turns defined in [references/workflows.md](references/workflows.md).
+
+```
+Loop Progress:
+- [ ] Turn 1: Proposal (Agent A)
+- [ ] Turn 2: Cross-Examination (Agent B)
+- [ ] Turn 3: Final Synthesis (Agent A)
+```
+
 ## Resources
 
-- **Examples**: See [references/examples.md](references/examples.md) for concrete input/output patterns.
-- **Handover Details**: See [references/handover-protocol.md](references/handover-protocol.md) for command flags and execution strategies.
-- **Integration Guide**: See [references/agent-context-integration.md](references/agent-context-integration.md) for using `hooks/agent_context.py`.
+- **Workflows**: See [references/workflows.md](references/workflows.md) for turn-by-turn logic.
+- **Config**: Patterns and priority are defined in [config.yaml](config.yaml).
+- **Examples**: See [references/examples.md](references/examples.md) for concrete patterns.
+- **Handover**: See [references/handover-protocol.md](references/handover-protocol.md) for command flags.
 
 ## Best Practices
 - **Concise Context**: Send only relevant snippets, not entire files, to the neighboring agent.

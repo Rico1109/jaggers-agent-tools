@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Implement orchestrating-agents skill and /orchestrate slash command
 - Improve CLI to sync custom slash commands and auto-generate them from skills for Gemini
+- Implement multi-turn collaborative workflows (Design, Adversarial, Troubleshoot) in orchestrating-agents skill
 ### Changed
 - Migrate hooks to Gemini
 
