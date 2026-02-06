@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Add mandatory Serena project activation step to skills
+
 ## [1.1.1] - 2026-02-03
 
 ### Added
@@ -17,13 +20,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implement specialized Gemini slash commands (/delegate, /document, /prompt)
 - Enable zero-cloning installation via npx github:Jaggerxtrm/jaggers-agent-tools
 - Implement Vault Sync Architecture for non-destructive settings management. Protects local secrets, MCP servers, and auth data during sync. Includes atomic writes and dry-run mode.
+- **Architecture Roadmap**: Document CLI architectural improvements in ROADMAP.md based on multi-agent orchestration findings (Transactional Sync, Manifest Versioning, Namespace Prefixes, Observability).
 
 ### Changed
 - **CLI Enhancement**: Automatically transforms `SKILL.md` into Gemini `.toml` command files during sync.
 - **Hook Migration**: Refined hook transformation logic for cross-agent compatibility.
 - Update SSOT and CHANGELOG for cross-agent compatibility and CLI improvements
 - Consolidate all v1.1.0 improvements: Zero-Cloning, Metadata-driven commands, and multi-turn orchestration
-
+- **ROADMAP.md**: Added "CLI Architecture Improvements" section with 5 phases addressing transactional sync, versioning, collision detection, observability, and transformation refactoring.
 
 ### Fixed
 - Fix hook execution timeouts by updating settings.json to use milliseconds and enhancing transform-gemini.js to handle unit mismatches and improve hook naming.
