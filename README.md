@@ -48,14 +48,23 @@ Unified task delegation system supporting both CCS (cost-optimized) and unitAI (
 
 Orchestrates task handoff and deep multi-turn "handshaking" sessions between Gemini and Qwen CLI agents.
 
-- **Invocation**: `/orchestrate [task]`
+- **Invocation**: `/orchestrate [workflow-type] [task]` (workflow-type optional)
 - **Purpose**: Facilitates multi-model collaboration, adversarial reviews, and deep troubleshooting.
 - **Workflows**:
-  - **Collaborative Design**: Proposal -> Critique -> Refinement (for features).
-  - **Adversarial Review**: Proposal -> Red Team Attack -> Defense (for security).
-  - **Troubleshoot Session**: Multi-agent hypothesis testing (for emergencies).
+  - **Collaborative Design** (`collaborative`): Proposal -> Critique -> Refinement (for features).
+  - **Adversarial Review** (`adversarial`): Proposal -> Red Team Attack -> Defense (for security).
+  - **Troubleshoot Session** (`troubleshoot`): Multi-agent hypothesis testing (for emergencies).
+  - **Single Handshake** (`handshake`): Quick one-turn second opinion.
+- **Examples**:
+  - `/orchestrate adversarial "Review payment security"`
+  - `/orchestrate "Design auth system"` (interactive workflow selection)
 - **Hook**: None (Direct slash command)
-- **Version**: 1.1.0
+- **Version**: 1.2.0
+
+**Key Features**:
+- Parameter-based workflow selection for direct invocation
+- Interactive fallback when no workflow specified
+- Corrected resume flags for multi-turn sessions (Gemini: `-r latest`, Qwen: `-c`)
 
 ### using-serena-lsp
 

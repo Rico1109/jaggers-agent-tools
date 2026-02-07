@@ -11,7 +11,7 @@ These workflows define deep, multi-turn interactions between agents for complex 
 | **2** | **Agent A** | Propose a high-level design. |
 | **3** | **Primary** | Pipe Agent A's proposal to Agent B. |
 | **4** | **Agent B** | Critique the design for edge cases and complexity. |
-| **5** | **Primary** | Return Agent B's critique to Agent A via `--resume` / `-c`. |
+| **5** | **Primary** | Return Agent B's critique to Agent A via `-r latest` (Gemini) or `-c` (Qwen). |
 | **6** | **Agent A** | Refine the design to address critiques. |
 
 ## 2. Adversarial Review (`adversarial-review`)
@@ -21,7 +21,7 @@ These workflows define deep, multi-turn interactions between agents for complex 
 | :--- | :--- | :--- |
 | **1** | **Primary** | Send the code/logic to Agent A for a "safe" review. |
 | **2** | **Agent B** | Act as a "Skeptic/Attacker": "Find 3 ways to break this logic." |
-| **3** | **Primary** | Pipe "attacks" to Agent A via `--resume` / `-c`. |
+| **3** | **Primary** | Pipe "attacks" to Agent A via `-r latest` (Gemini) or `-c` (Qwen). |
 | **4** | **Agent A** | Defend the logic or provide patches for the identified flaws. |
 
 ## 3. Troubleshoot Session (`troubleshoot-session`)
