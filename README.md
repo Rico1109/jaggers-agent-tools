@@ -113,10 +113,6 @@ Maintains Single Source of Truth (SSOT) documentation system for projects.
 - Trigger: StatusLine
 - Purpose: Display custom status line information
 
-**gsd-check-update.js**
-- Trigger: SessionStart
-- Purpose: Check for Get Shit Done workflow updates
-
 ## Installation
 
 ### 🚀 Zero-Cloning Installation (Recommended)
@@ -233,8 +229,7 @@ jaggers-agent-tools/
     ├── pip-venv-guard.py        # Venv enforcement
     ├── serena-workflow-reminder.py # Serena reminder
     ├── type-safety-enforcement.py # Type safety
-    ├── statusline.js            # Status line display
-    └── gsd-check-update.js      # GSD updates
+    └── statusline.js            # Status line display
 ```
 
 ## Contributing

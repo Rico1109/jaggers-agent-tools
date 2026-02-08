@@ -41,10 +41,6 @@
           {
             "type": "command",
             "command": "/home/dawid/.claude/hooks/serena-workflow-reminder.py"
-          },
-          {
-            "type": "command",
-            "command": "node \"/home/dawid/.claude/hooks/gsd-check-update.js\""
           }
         ]
       }

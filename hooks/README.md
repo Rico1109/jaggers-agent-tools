@@ -116,11 +116,6 @@ Hooks intercept specific events in the Claude Code lifecycle to provide:
 **Purpose**: Displays custom status line information.
 **Trigger**: StatusLine
 
-### gsd-check-update.js
-
-**Purpose**: Checks for GSD workflow updates.
-**Trigger**: SessionStart
-
 ## Installation
 
 1. Copy hooks to Claude Code directory:
