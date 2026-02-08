@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add mandatory Serena project activation step to skills
 - Added parameter support to orchestrating-agents skill and corrected Gemini/Qwen resume flags
 
+
+### Changed
+- Performed DevOps audit and implemented initial CI/CD workflow with GitHub Actions
 ### Removed
 - **gsd-check-update.js**: Removed deprecated GSD workflow update checker hook from all configurations
 

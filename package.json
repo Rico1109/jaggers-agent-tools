@@ -7,7 +7,9 @@
     "jaggers-config": "./cli/index.js"
   },
   "scripts": {
-    "start": "node cli/index.js"
+    "start": "node cli/index.js",
+    "lint": "echo 'No linting configured'",
+    "test": "echo 'No tests configured'"
   },
   "dependencies": {
     "prompts": "^2.4.2",

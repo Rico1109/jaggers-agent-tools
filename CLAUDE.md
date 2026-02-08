@@ -7,6 +7,13 @@
 - **CLI**: stored in `cli/`. Node.js tool for installation and sync.
 - **Documentation**: stored in `docs/` and `.serena/memories/` (SSOT).
 
+## CI/CD
+- **GitHub Actions**: Workflows in `.github/workflows/ci.yml`.
+- **Validation**:
+  - `npm run lint`: Lint Node.js (Eslint) and Python (Ruff).
+  - `npm test`: Run global test suite.
+  - `pytest skills/documenting/tests`: Run documenting skill tests.
+
 ## Development Environment
 - **Runtime**: Node.js (CLI), Python 3.8+ (Hooks/Scripts)
 - **Dependencies**:
