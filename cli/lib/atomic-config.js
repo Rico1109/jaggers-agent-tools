@@ -184,10 +184,12 @@ export async function safeMergeConfig(localConfigPath, repoConfig, options = {})
   const {
     preserveComments = true,
     backupOnSuccess = true,
-    dryRun = false
+    dryRun = false,
+    resolvedLocalConfig = null  // NEW: pre-resolved local config with corrected paths
   } = options;
 
-  const localConfig = await safeReadConfig(localConfigPath);
+  // Use pre-resolved config if provided (fixes hardcoded paths), otherwise read from disk
+  const localConfig = resolvedLocalConfig || await safeReadConfig(localConfigPath);
   const changes = [];
 
   // Report MCP Servers preservation

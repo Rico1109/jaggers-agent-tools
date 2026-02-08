@@ -78,11 +78,17 @@ export async function executeSync(repoRoot, systemRoot, changeSet, mode, actionT
             finalRepoConfig = transformGeminiConfig(finalRepoConfig, systemRoot);
           }
 
+          // BUGFIX: Also resolve paths in existing local config before merging
+          // This ensures hardcoded paths from previous installations get corrected
+          const localConfig = await fs.readJson(dest);
+          const resolvedLocalConfig = resolveConfigPaths(localConfig, systemRoot);
+
           // Use safe merge to preserve protected keys in local config
           const mergeResult = await safeMergeConfig(dest, finalRepoConfig, {
             backupOnSuccess: true,
             preserveComments: true,
-            dryRun: isDryRun
+            dryRun: isDryRun,
+            resolvedLocalConfig: resolvedLocalConfig
           });
 
           if (mergeResult.updated) {
@@ -162,10 +168,17 @@ export async function executeSync(repoRoot, systemRoot, changeSet, mode, actionT
 
 /**
  * Recursively resolves paths in the config to match the target directory
+ *
+ * This function corrects hardcoded paths (e.g. /home/dawid/...) to match the current user's home directory.
+ * It's applied to both repository config AND local config to ensure existing installations get updated.
+ *
+ * @param {Object} config - The configuration object to process
+ * @param {string} targetDir - The target directory (e.g. /home/jagger/.claude)
+ * @returns {Object} - New config object with resolved paths
  */
 function resolveConfigPaths(config, targetDir) {
   const newConfig = JSON.parse(JSON.stringify(config));
-  
+
   function recursiveReplace(obj) {
     for (const key in obj) {
       if (typeof obj[key] === 'string') {

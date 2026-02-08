@@ -11,6 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add mandatory Serena project activation step to skills
 - Added parameter support to orchestrating-agents skill and corrected Gemini/Qwen resume flags
 
+### Fixed
+- **Critical Path Resolution Bug**: Fixed installer not correcting hardcoded paths in protected config keys (hooks). Now applies path resolution to BOTH repo config AND existing local config before merge, ensuring updates work correctly even when hooks already exist.
+
 ## [1.1.1] - 2026-02-03
 
 ### Added
