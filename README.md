@@ -1,6 +1,7 @@
 # Jaggers Agent Tools
 
 Custom skills, hooks, and commands for Claude Code. This repository contains production-ready extensions to enhance Claude's capabilities with prompt improvement, task delegation, and development workflow automation.
+A smart CLI configuration and update mechanism makes it easy to copy skills, commands and hooks across different agentic IDEs or CLIs. You can clone the repo and reuse the install/update method for your very own purposes.
 
 ## Table of Contents
 
@@ -112,6 +113,8 @@ Maintains Single Source of Truth (SSOT) documentation system for projects.
 **statusline.js**
 - Trigger: StatusLine
 - Purpose: Display custom status line information
+
+**NOTE** certain skills are third-party utilities, i believe they can be useful.
 
 ## Installation
 
