@@ -352,48 +352,53 @@ Suggest roadmap items by creating issues in:
 
 ---
 
-### Phase 1: Transactional Sync with Rollback (HIGH PRIORITY)
+### Phase 1: Universal Configuration Hub & Format Adaptation (COMPLETED v1.5.0)
+
+**Goal:** Centralize MCP and Hooks into a Single Source of Truth with multi-tool compilation.
+
+**Implementation:**
+- ✅ **Decoupled Canonical Sources**: `config/mcp_servers.json` and `config/hooks.json`.
+- ✅ **Professional Adapter**: `ConfigAdapter` with cross-platform format transformation.
+- ✅ **Strict Pruning**: `executeSync` respects `mode: prune` for environment hygiene.
+- ✅ **Dynamic Injection**: Unified handling of `settings.json` for Claude, Gemini, and Qwen.
+- ✅ **Manifest Tracking**: Initial implementation of `.jaggers-sync-manifest.json`.
+
+---
+
+### Phase 2: Advanced Env Var & Path Resolution (COMPLETED v1.5.1)
+
+**Goal:** Professional handling of environment variable syntax and path expanding.
+
+**Implementation:**
+- ✅ **EnvVarTransformer**: Recursive transformation between `${VAR}`, `${env:VAR}`, and `{env:VAR}`.
+- ✅ **Safe Path Expansion**: Intelligent resolution of `~/` and `${HOME}` across all config fields.
+
+---
+
+### Phase 3: Transactional Sync & Rollback (HIGH PRIORITY)
 
 **Problem:** Mid-sync failures leave the agent environment in an inconsistent state.
 
 **Solution:** Session Snapshot pattern with automatic rollback.
 
-**Implementation:**
-
-```javascript
-// cli/lib/sync.js
-async function executeSync(items) {
-  const snapshot = await createSnapshot();
-  try {
-    for (const item of items) {
-      await syncItem(item);
-    }
-    await validateEnvironment(); // Post-sync smoke test
-  } catch (error) {
-    console.error("Sync failed, rolling back...");
-    await rollback(snapshot);
-    throw error;
-  }
-}
-```
-
-**Files to Modify:**
-
-- `cli/lib/sync.js` - Add snapshot/rollback logic
-- `cli/lib/snapshot.js` (NEW) - Snapshot management
-- `cli/lib/validate.js` (NEW) - Post-sync validation
-
-**Success Criteria:**
-
-- Failed sync leaves environment in pre-sync state
-- User can manually trigger `--rollback` to previous session
-- Sync log tracks which files were modified
-
 **Timeline:** Q2 2026
 
 ---
 
-### Phase 2: Manifest-Based Versioning (HIGH PRIORITY)
+### Phase 4: Full Multi-Tool Support (Cursor & VS Code) (MEDIUM PRIORITY)
+
+**Goal:** Extend the Hub to support Cursor rules and standard VS Code settings.
+
+**Implementation:**
+- [ ] Support for `.cursorrules` generation.
+- [ ] Automatic `mcp.json` deployment for Cursor.
+- [ ] VS Code `settings.json` synchronization.
+
+**Timeline:** Q3 2026
+
+---
+
+### Phase 5: Manifest-Based Versioning (HIGH PRIORITY)
 
 **Problem:** Silent versioning conflicts during backports, no drift detection.
 
