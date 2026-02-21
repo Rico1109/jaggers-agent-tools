@@ -1,5 +1,5 @@
-#!/usr/bin/env node
 import { Command } from 'commander';
+
 import { createSyncCommand } from './commands/sync.js';
 import { createStatusCommand } from './commands/status.js';
 import { createResetCommand } from './commands/reset.js';

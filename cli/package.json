@@ -5,7 +5,7 @@
   "main": "./dist/index.js",
   "type": "module",
   "bin": {
-    "jaggers-config": "./dist/index.js"
+    "jaggers-config": "./dist/index.cjs"
   },
   "scripts": {
     "prepare": "npm run build",
@@ -13,7 +13,7 @@
     "dev": "tsx src/index.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "start": "node dist/index.js"
+    "start": "node dist/index.cjs"
   },
   "dependencies": {
     "commander": "^14.0.3",
