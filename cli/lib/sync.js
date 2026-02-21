@@ -4,6 +4,7 @@ import kleur from 'kleur';
 import { transformGeminiConfig, transformSkillToCommand } from './transform-gemini.js';
 import { safeMergeConfig } from './atomic-config.js';
 import { ConfigAdapter } from './config-adapter.js';
+import { syncMcpServersWithCli, loadCanonicalMcpConfig, detectAgent } from './sync-mcp-cli.js';
 
 /**
  * Execute a sync plan based on changeset and mode
@@ -25,13 +26,28 @@ export async function executeSync(repoRoot, systemRoot, changeSet, mode, actionT
   let count = 0;
   const adapter = new ConfigAdapter(systemRoot);
 
+  // Special handling for agents with official MCP CLI: Always sync MCP servers
+  // Supported: claude, gemini, qwen
+  const agent = detectAgent(systemRoot);
+  if (agent && actionType === 'sync') {
+    console.log(kleur.gray(`  --> ${agent} MCP servers (via ${agent} mcp CLI)`));
+    
+    // Load canonical MCP config
+    const canonicalConfig = loadCanonicalMcpConfig(repoRoot);
+    
+    // Sync using official CLI
+    await syncMcpServersWithCli(agent, canonicalConfig, isDryRun, mode === 'prune');
+    
+    count++;
+  }
+
   for (const category of categories) {
     const itemsToProcess = [];
 
     if (actionType === 'sync') {
       itemsToProcess.push(...changeSet[category].missing);
       itemsToProcess.push(...changeSet[category].outdated);
-      
+
       // PRUNE: Handle removals from system if no longer in repo
       if (mode === 'prune') {
         for (const itemToDelete of changeSet[category].drifted || []) {
@@ -51,26 +67,19 @@ export async function executeSync(repoRoot, systemRoot, changeSet, mode, actionT
       if (category === 'config' && item === 'settings.json' && actionType === 'sync') {
         src = path.join(repoRoot, 'config', 'settings.json');
         dest = path.join(systemRoot, 'settings.json');
-        
+
         console.log(kleur.gray(`  --> config/settings.json`));
+
+        // Skip settings.json sync for agents with official MCP CLI
+        // MCP servers are managed via CLI, hooks are not supported
+        if (agent) {
+          console.log(kleur.gray(`  (Skipped: ${agent} uses ${agent} mcp CLI for MCP servers)`));
+          count++;
+          continue;
+        }
 
         const repoConfig = await fs.readJson(src);
         let finalRepoConfig = resolveConfigPaths(repoConfig, systemRoot);
-
-        if (!isClaude) {
-          finalRepoConfig = transformGeminiConfig(finalRepoConfig, systemRoot);
-        }
-        
-        // Inject MCP Servers
-        const mcpSrc = path.join(repoRoot, 'config', 'mcp_servers.json');
-        if (await fs.pathExists(mcpSrc)) {
-          const mcpRaw = await fs.readJson(mcpSrc);
-          const mcpAdapted = adapter.adaptMcpConfig(mcpRaw);
-          if (mcpAdapted.mcpServers) {
-            finalRepoConfig.mcpServers = { ...(finalRepoConfig.mcpServers || {}), ...mcpAdapted.mcpServers };
-            if (!isDryRun) console.log(kleur.dim(`      (Injected MCP servers)`));
-          }
-        }
 
         // Inject Hooks
         const hooksSrc = path.join(repoRoot, 'config', 'hooks.json');

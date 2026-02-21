@@ -1,0 +1,34 @@
+{
+  "$schema": "../vsync_repo/schemas/mcp_servers.schema.json",
+  "$metadata": {
+    "description": "Optional MCP servers - user chooses during sync",
+    "agents": ["claude-code", "gemini", "qwen", "antigravity"],
+    "version": "2.0.0"
+  },
+  "mcpServers": {
+    "unitAI": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@jaggerxtrm/unitai"
+      ],
+      "env": {},
+      "_notes": {
+        "description": "Multi-agent workflow orchestration system",
+        "repository": "https://github.com/Jaggerxtrm/unitAI",
+        "prerequisite": "Requires npx (Node.js)"
+      }
+    },
+    "omni-search-engine": {
+      "type": "sse",
+      "url": "http://127.0.0.1:8765/sse",
+      "env": {},
+      "_notes": {
+        "description": "Local search engine with SSE transport",
+        "repository": "https://github.com/Jaggerxtrm/omni-search-engine",
+        "prerequisite": "Requires running omni-search-engine service on port 8765"
+      }
+    }
+  }
+}

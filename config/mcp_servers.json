@@ -1,20 +1,46 @@
 {
+  "$schema": "../vsync_repo/schemas/mcp_servers.schema.json",
+  "$metadata": {
+    "description": "Core MCP servers - installed by default for all agents",
+    "agents": ["claude-code", "gemini", "qwen", "antigravity"],
+    "version": "2.0.0"
+  },
   "mcpServers": {
-    "filesystem": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/home/dawid/projects"]
-    },
-    "git": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-git"]
-    },
-    "memory": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-memory"]
-    },
     "serena": {
-      "command": "docker",
-      "args": ["run", "-i", "--rm", "-v", "/var/run/docker.sock:/var/run/docker.sock", "serena-agent"]
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/oraios/serena",
+        "serena",
+        "start-mcp-server",
+        "--context",
+        "ide-assistant"
+      ],
+      "env": {},
+      "_notes": {
+        "project": "Auto-detected from current working directory during usage",
+        "prerequisite": "Requires uvx (uv package manager)"
+      }
+    },
+    "context7": {
+      "type": "http",
+      "url": "https://mcp.context7.com/mcp",
+      "headers": {
+        "CONTEXT7_API_KEY": "${CONTEXT7_API_KEY}"
+      },
+      "_notes": {
+        "auth": "Requires API key - user will be prompted during sync",
+        "env_file": "Store key in .env or ~/.jaggers/.env"
+      }
+    },
+    "github-grep": {
+      "type": "http",
+      "url": "https://mcp.grep.app"
+    },
+    "deepwiki": {
+      "type": "http",
+      "url": "https://mcp.deepwiki.com/mcp"
     }
   }
 }

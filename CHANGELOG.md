@@ -8,18 +8,61 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- Add mandatory Serena project activation step to skills
-- Added parameter support to orchestrating-agents skill and corrected Gemini/Qwen resume flags
-
+- **MCP Servers Configuration v3.1.0**: Centralized environment file management
+  - New module: `cli/lib/env-manager.js` - manages `~/.config/jaggers-agent-tools/.env`
+  - CLI auto-creates `.env` file on first sync
+  - Validates required environment variables before sync
+  - Shows helpful warnings with links to get API keys
+  - Re-sync safe: existing values preserved, file not overwritten
+  - Example file at `~/.config/jaggers-agent-tools/.env.example`
+- **MCP Servers Configuration v3.0.0**: Unified MCP CLI sync for all agents
+  - New module: `cli/lib/sync-mcp-cli.js` - handles Claude, Gemini, and Qwen
+  - All three agents now use official `mcp add/remove/list` commands
+  - Idempotent sync (re-running doesn't cause errors)
+  - Agent-specific command builders for each CLI
+  - User-level installation for Claude (`-s user` scope)
+- **MCP Servers Configuration v2.0.0**: Complete overhaul of MCP servers sync system
+  - Split into `config/mcp_servers.json` (core) and `config/mcp_servers_optional.json` (optional)
+  - Core servers: serena, context7, github-grep, deepwiki
+  - Optional servers: unitAI, omni-search-engine (user prompted during sync)
+  - Added `config/.env.example` for API key documentation
+  - New SSOT memory: `ssot_cli_mcp_servers_2026-02-21.md`
+- **ConfigAdapter Enhancements**: Format adaptation for all 4 agents
+  - Added Qwen support (same format as Gemini)
+  - Added Antigravity support (`url` → `serverUrl` transformation)
+  - Automatic `type` field handling (required for Claude/Antigravity, removed for Gemini/Qwen)
+  - Enhanced `EnvVarTransformer` for cross-agent compatibility
+- **Documentation**: New comprehensive guide `docs/mcp-servers-config.md`
+- **README Update**: Added MCP Servers configuration section with links to documentation
 
 ### Changed
-- Performed DevOps audit and implemented initial CI/CD workflow with GitHub Actions
-- Refactor CLI sync engine to Universal Hub architecture with MCP/Hooks injection and VSync-style format adaptation.
+- **MCP Configuration Cleanup**: Removed unused servers from canonical source
+  - Removed: `filesystem`, `git`, `memory` (not in actual user config)
+  - Removed: `gmail`, `yfinance-market-intelligence` (project-specific/personal)
+  - Updated: `serena` command (uvx from git, auto-detects project at runtime)
+- **Universal Hub SSOT**: Updated to v2.0.0, references new MCP Servers SSOT
+- **Metadata**: Added `_notes` fields to MCP configs for documentation and prerequisites
+- **Env File Location**: Moved from repo to `~/.config/jaggers-agent-tools/.env` (centralized)
+
+### Deprecated
+- **Single MCP Config File**: `config/mcp_servers.json` now core-only, optional servers separated
+- **JSON File Sync for Claude/Gemini/Qwen**: Prefer official `mcp` CLI method
+- **Repo .env files**: Use centralized `~/.config/jaggers-agent-tools/.env` instead
+
 ### Removed
-- **gsd-check-update.js**: Removed deprecated GSD workflow update checker hook from all configurations
+- **Unused MCP Servers**: filesystem, git, memory (never in actual production use)
+- **Personal MCP Servers**: gmail, yfinance-market-intelligence (user-specific, not canonical)
+- **Old Claude-specific sync**: `cli/lib/sync-claude-mcp.js` (replaced by unified `sync-mcp-cli.js`)
 
 ### Fixed
-- **Critical Path Resolution Bug**: Fixed installer not correcting hardcoded paths in protected config keys (hooks). Now applies path resolution to BOTH repo config AND existing local config before merge, ensuring updates work correctly even when hooks already exist.
+- **Format Compatibility**: All 4 agents (Claude, Gemini, Qwen, Antigravity) now properly supported
+- **URL Field Names**: Antigravity `serverUrl` transformation implemented
+- **Type Field Handling**: Automatic addition/removal per agent requirements
+- **Claude Code MCP Sync**: Now uses official CLI instead of JSON file manipulation
+- **Claude Scope**: Uses `-s user` for user-level installation (not project-level)
+- **Gemini/Qwen MCP Sync**: Now use official CLI commands instead of JSON manipulation
+- **Idempotent Sync**: Re-running sync doesn't cause "already exists" errors
+- **Env Var Management**: Centralized at `~/.config/jaggers-agent-tools/.env`, auto-created
 
 ## [1.1.1] - 2026-02-03
 

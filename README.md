@@ -163,6 +163,40 @@ npx ./cli
 
 ## Configuration
 
+### MCP Servers
+
+MCP servers are configured from canonical sources with format adaptation for each agent.
+
+**Core Servers** (installed by default):
+- **serena**: Code analysis (requires `uvx`)
+- **context7**: Documentation lookup (requires API key)
+- **github-grep**: Code search across GitHub
+- **deepwiki**: Technical documentation
+
+**Optional Servers** (user choice during sync):
+- **unitAI**: Multi-agent workflow orchestration
+- **omni-search-engine**: Local search engine (requires running service)
+
+**Configuration Files**:
+- Core: [`config/mcp_servers.json`](config/mcp_servers.json)
+- Optional: [`config/mcp_servers_optional.json`](config/mcp_servers_optional.json)
+- Environment: [`config/.env.example`](config/.env.example)
+
+**Environment Variables**:
+- **Location:** `~/.config/jaggers-agent-tools/.env` (created automatically)
+- **Required:** `CONTEXT7_API_KEY` for context7 server
+- The CLI will create the `.env` file on first sync
+- Edit `~/.config/jaggers-agent-tools/.env` to add your API keys
+- Re-run sync after adding keys
+
+**Supported Agents**:
+- Claude Code (`~/.claude.json` - user-level MCP servers)
+- Gemini (`gemini mcp` CLI)
+- Qwen (`qwen mcp` CLI)
+- Antigravity (`~/.gemini/antigravity/mcp_config.json`)
+
+**Documentation**: See [docs/mcp-servers-config.md](docs/mcp-servers-config.md) for complete setup guide.
+
 ### Skill Suggestions
 
 Enable/disable proactive skill suggestions:

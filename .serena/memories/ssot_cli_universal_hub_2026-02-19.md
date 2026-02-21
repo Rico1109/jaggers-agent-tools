@@ -1,11 +1,14 @@
 ---
 title: Universal Configuration Hub Architecture
-version: 1.0.0
-updated: 2026-02-19
+version: 2.0.0
+updated: 2026-02-21
 domain: cli
 type: ssot
 tags: [sync, config, mcp, hooks, cursor, gemini, claude]
 changelog:
+  - version: 2.0.0
+    date: 2026-02-21
+    description: Updated to reference new MCP Servers SSOT. Core/optional server separation implemented.
   - version: 1.0.0
     date: 2026-02-19
     description: Initial SSOT for Universal Configuration Hub with MCP/Hooks injection.
@@ -19,7 +22,8 @@ The Universal Configuration Hub is a professional-grade configuration management
 ## Components
 
 ### 1. Canonical Configuration Sources
-- **`config/mcp_servers.json`**: Central definitions for all MCP servers. Supports standard JSON format.
+- **`config/mcp_servers.json`**: Core MCP servers (serena, context7, github-grep, deepwiki). See [MCP Servers SSOT](ssot_cli_mcp_servers_2026-02-21.md).
+- **`config/mcp_servers_optional.json`**: Optional MCP servers (unitAI, omni-search-engine). See [MCP Servers SSOT](ssot_cli_mcp_servers_2026-02-21.md).
 - **`config/hooks.json`**: Abstract hook definitions mapping events (e.g., `UserPromptSubmit`) to script names.
 - **`config/settings.json`**: General tool settings (model preferences, security, UI).
 

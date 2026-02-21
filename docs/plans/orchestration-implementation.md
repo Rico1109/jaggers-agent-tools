@@ -1,0 +1,263 @@
+# Orchestration Implementation Plan
+
+**Status:** In Progress — Solution identified (use `qwen` CLI directly)
+
+**Created:** 2026-02-20
+**Last Updated:** 2026-02-20 (discovered `qwen` CLI supports `--session-id`)
+
+---
+
+## Objective
+
+Create a script-driven multi-agent orchestration system for the Jaggers Agent Tools ecosystem that replaces fragile `-r latest` session resumption with **UUID-pinned sessions**.
+
+### Problem Being Solved
+
+Current orchestration skills (`orchestrating-agents`, `delegating`) use natural language prompts and rely on `-r latest` / `-c` for session resumption. This is fragile because:
+
+1. **`-r latest` is global** — If you start another Gemini session in a parallel terminal, `-r latest` resumes the wrong one
+2. **No session tracking** — No persistent record of which session belongs to which workflow turn
+3. **Manual prompt stitching** — Claude must manually pipe output between agents (token-inefficient)
+4. **Shell parallelism doesn't work** — Backgrounding CLI processes (`gemini ... &`) loses output association
+
+### Proposed Solution
+
+A Node.js script (`cli/lib/orchestrate.js` or test equivalent) that:
+
+1. **Pins Gemini sessions** — Diff `--list-sessions` before/after Turn 1 → extract new UUID
+2. **Pins CCS sessions** — Pre-generate UUID → pass `--session-id` upfront
+3. **Stores workflow state** — `.jaggers/sessions.json` registry with pinned UUIDs
+4. **Handoffs via files** — `.jaggers/handover/turn_N_<id>.md` artifacts instead of string piping
+5. **Resumes deterministically** — `-r <uuid>` (Gemini) / `--resume <uuid>` (CCS) instead of `-r latest`
+
+---
+
+## What Was Done
+
+### 1. Architectural Analysis (3-turn collaborative session)
+
+Ran a collaborative workflow between Claude (controller), Gemini, and Qwen to evaluate parallel execution strategies:
+
+| Strategy | Verdict |
+|----------|---------|
+| Shell parallelism (`gemini ... & qwen ...`) | ❌ No structured output capture, race conditions |
+| Sub-agent delegation (Claude `Task` tool) | ✅ Good for independent tasks, no iterative refinement |
+| Hybrid orchestration (script-driven) | ✅ Best for multi-turn handshaking |
+
+**Conclusion**: Script-driven orchestration with UUID-pinned sessions is the correct approach.
+
+### 2. Test Skill Created
+
+**Location**: `~/.claude/skills/orchestrate-test/`
+
+```
+orchestrate-test/
+├── SKILL.md
+└── scripts/
+    └── orchestrate.mjs
+```
+
+**Skill definition**: Instructs Claude to invoke the script for testing collaborative/adversarial workflows.
+
+### 3. Orchestration Script Implemented
+
+**Location**: `~/.claude/skills/orchestrate-test/scripts/orchestrate.mjs`
+
+**Core mechanics**:
+
+```js
+// Gemini: diff --list-sessions before/after Turn 1
+const before = listGeminiSessions()  // Extract all UUIDs
+const output = run('gemini', ['-p', prompt])
+const after = listGeminiSessions()
+const geminiUUID = findNewUUID(before, after)  // Pin this!
+
+// CCS: pre-generate UUID
+const ccsId = randomUUID()
+run('ccs', ['qwen', '-p', '--session-id', ccsId, prompt])
+
+// Resume: use pinned UUID (not "latest")
+run('gemini', ['-r', geminiUUID, '-p', refinementPrompt])
+```
+
+**Artifacts produced**:
+
+```
+.jaggers/
+  sessions.json              ← { workflow_id: { gemini_session: uuid, ccs_session: uuid, ... } }
+  handover/
+    turn_1_<id>.md           ← Gemini proposal
+    turn_2_<id>.md           ← CCS critique
+    turn_3_<id>.md           ← Gemini synthesis
+```
+
+### 4. Session Pinning Validated
+
+**Gemini** — Tested and confirmed working:
+
+```
+# Before Turn 1
+gemini --list-sessions  # 22 sessions
+
+# Run Turn 1
+gemini -p "Propose a solution..."
+# New session created
+
+# After Turn 1
+gemini --list-sessions  # 23 sessions
+# Diff → extract UUID: 343336f7-a201-4511-a53e-990eb7091cc1
+
+# Resume (pinned)
+gemini -r 343336f7-a201-4511-a53e-990eb7091cc1 -p "Refine..."
+# ✅ Works — immune to parallel sessions
+```
+
+**Qwen** — Direct CLI works, discovered `--session-id` support:
+
+```
+# ✅ Tested and working:
+qwen -p --session-id "123e4567-e89b-12d3-a456-426614174000" "Say hello"
+# Output: "Hello! I'm ready to help you with your projects..."
+
+# ✅ Resume works (but interactive picker only):
+qwen -r  # Shows session picker, not scriptable
+
+# ❌ No --list-sessions equivalent
+# ❌ Resume by UUID non-interactively not available
+```
+
+**Key difference from Gemini**:
+- `qwen --session-id <uuid>` creates a session with that ID (pre-generation works ✅)
+- `qwen -r` shows interactive picker (no `-r <uuid>` direct resume like Gemini)
+- No `--list-sessions` to discover session IDs after creation
+
+**Workaround**: In collaborative workflow, Qwen is Turn 2 only (critique), so no resume needed. Pre-generating UUID for `--session-id` is sufficient.
+
+---
+
+## Solution Found
+
+### Use `qwen` CLI directly, not `ccs qwen`
+
+**Discovery**: The original `orchestrating-agents` skill used `qwen` directly. We mistakenly went through `ccs` wrapper.
+
+**Why `ccs qwen` was hanging**:
+- `ccs` wraps `claude` binary which has TTY requirements and nested-session checks
+- Even with `CLAUDECODE=""` unset, the underlying `claude` process was waiting for something
+- `ccs` is designed for interactive use, not headless script execution
+
+**Why `qwen` direct works**:
+- Native CLI, no wrapping
+- `--session-id <uuid>` flag supports pre-generated UUIDs
+- `-p` flag works headlessly without TTY
+- No nested-session restrictions
+
+**Updated script approach**:
+
+```js
+// Turn 2: Use qwen directly
+const qwenId = randomUUID()
+run('qwen', ['-p', '--session-id', qwenId, critiquePrompt])
+```
+
+---
+
+## Next Steps
+
+### Immediate
+
+1. **Update script to use `qwen` directly** — Replace `ccs qwen` with `qwen`
+2. **Test full 3-turn workflow** — Verify collaborative works end-to-end
+3. ~~**Consider AWS cli-agent-orchestrator**~~ — ✅ Completed, see [aws-cao-integration-analysis.md](aws-cao-integration-analysis.md)
+
+### AWS CAO Analysis Summary
+
+**Conclusion:** Improve Jaggers with CAO-inspired features rather than full adoption.
+
+Key findings:
+- CAO is tmux-based with HTTP API control; Jaggers is file-based with direct CLI invocation
+- CAO lacks Gemini/Qwen support (optimized for Amazon Q CLI, Claude Code)
+- Features to adopt: status detection, async "Assign" mode, HTTP API layer
+- File-based handover remains superior for human readability and version control
+
+See full analysis: [aws-cao-integration-analysis.md](aws-cao-integration-analysis.md)
+
+### Implementation path
+
+1. **Fix the script** — Ensure `ccs qwen` (or alternative) produces output
+2. **Test full workflow** — Run 3-turn collaborative end-to-end
+3. **Add more workflows** — Adversarial, troubleshoot, handshake
+4. **Move to project CLI** — Promote from `~/.claude/skills/` to `cli/lib/orchestrate.js`
+5. **Update skills** — Modify `orchestrating-agents` to invoke script instead of natural language prompts
+6. **Document** — Update `docs/` with new architecture
+
+---
+
+## Files Created/Modified
+
+### Created
+
+- `~/.claude/skills/orchestrate-test/SKILL.md`
+- `~/.claude/skills/orchestrate-test/scripts/orchestrate.mjs`
+- `docs/plans/orchestration-implementation.md` (this file)
+
+### To Be Created
+
+- `.jaggers/sessions.json` (runtime state)
+- `.jaggers/handover/*.md` (turn artifacts)
+
+### To Be Modified (once implemented)
+
+- `skills/orchestrating-agents/SKILL.md` — invoke script
+- `skills/orchestrating-agents/references/workflows.md` — add synthesis artifact protocol
+- `hooks/agent_context.py` — detect handover file reads for context injection
+
+---
+
+## References
+
+- **Original discussion**: Collaborative 3-turn session (Gemini → Qwen → Gemini synthesis)
+- **Handover protocol**: `skills/orchestrating-agents/references/handover-protocol.md`
+- **Workflow definitions**: `skills/orchestrating-agents/references/workflows.md`
+- **Delegating skill**: `skills/delegating/SKILL.md` (v7.0.0 direct orchestration)
+- **Test skill**: `~/.claude/skills/orchestrate-test/SKILL.md`
+
+---
+
+## Related Research: AWS CLI Agent Orchestrator
+
+**Project**: [awslabs/cli-agent-orchestrator](https://github.com/awslabs/cli-agent-orchestrator)
+
+### Key Architectural Concepts
+
+| Component | Description | Relevance to Jaggers |
+|-----------|-------------|----------------------|
+| **tmux sessions** | Each agent runs in isolated tmux session | More robust than our simple script; enables true parallelism |
+| **MCP server** | Model Context Protocol for agent communication | Could replace file-based handoffs |
+| **CAO_TERMINAL_ID** | Unique ID per terminal for routing | Similar to our UUID pinning but with runtime routing |
+| **REST API** | `/sessions`, `/sessions/{id}/terminals` endpoints | Enables programmatic session management |
+| **Database state** | SQLAlchemy models for terminals, flows | More robust than our JSON file approach |
+| **Flows** | Cron-scheduled agent sessions | Could automate recurring workflows |
+
+### Three Orchestration Patterns
+
+1. **Handoff** — Synchronous task transfer, caller waits for completion
+   - Similar to our collaborative workflow (Gemini → Qwen → Gemini)
+2. **Assign** — Delegation without waiting
+   - Similar to our dispatching-parallel-agents
+3. **Send Message** — Asynchronous messaging between agents
+   - Not currently in our ecosystem
+
+### Potential Applications
+
+**Short-term** (steal ideas):
+- `CAO_TERMINAL_ID` concept — More explicit than just UUID storage
+- REST API approach — Could expose via `jaggers` CLI for external tools
+- Database vs JSON — If workflows get complex, consider SQLite instead
+
+**Long-term** (if ecosystem grows):
+- MCP server — Replace file handoffs with proper protocol
+- tmux isolation — If we need true parallel agent execution
+- Flow scheduling — Automate recurring reviews/backups
+
+**Source**: [DeepWiki query on cli-agent-orchestrator architecture](https://deepwiki.com/search/what-is-the-architecture-of-th_e8a8fa6d-3172-4353-8237-45edccdcd51a)

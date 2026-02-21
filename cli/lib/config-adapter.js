@@ -26,6 +26,8 @@ export class EnvVarTransformer {
       case "claude": return value;
       case "cursor": return value.replace(/\$\{env:([A-Za-z0-9_]+)\}/g, "${$1}");
       case "opencode": return value.replace(/\{env:([A-Za-z0-9_]+)\}/g, "${$1}");
+      case "gemini": return value; // Gemini uses ${VAR} like Claude
+      case "qwen": return value;   // Qwen uses ${VAR} like Claude
       default: return value;
     }
   }
@@ -40,6 +42,8 @@ export class EnvVarTransformer {
         });
       case "opencode":
         return value.replace(/\$\{([A-Z0-9_]+)\}/g, "{env:$1}");
+      case "gemini": return value; // Gemini uses ${VAR} like Claude
+      case "qwen": return value;   // Qwen uses ${VAR} like Claude
       default: return value;
     }
   }
@@ -51,19 +55,32 @@ export class ConfigAdapter {
     this.homeDir = os.homedir();
     this.isClaude = systemRoot.includes('.claude') || systemRoot.includes('Claude');
     this.isGemini = systemRoot.includes('.gemini') || systemRoot.includes('Gemini');
+    this.isQwen = systemRoot.includes('.qwen') || systemRoot.includes('Qwen');
     this.isCursor = systemRoot.toLowerCase().includes('cursor');
-    
-    this.targetFormat = this.isCursor ? 'cursor' : (this.isClaude ? 'claude' : 'claude');
+    this.isAntigravity = systemRoot.includes('antigravity');
+
+    this.targetFormat = this.isCursor ? 'cursor' : 
+                        this.isAntigravity ? 'antigravity' :
+                        (this.isClaude ? 'claude' : 'claude');
     this.hooksDir = path.join(this.systemRoot, 'hooks');
   }
 
   adaptMcpConfig(canonicalConfig) {
     if (!canonicalConfig || !canonicalConfig.mcpServers) return {};
     const config = JSON.parse(JSON.stringify(canonicalConfig));
-    
+
     // Transform Env Vars
     config.mcpServers = EnvVarTransformer.transform(config.mcpServers, 'claude', this.targetFormat);
-    
+
+    // Apply format-specific transformations
+    if (this.isGemini || this.isQwen) {
+      this.transformToGeminiFormat(config.mcpServers);
+    } else if (this.isAntigravity) {
+      this.transformToAntigravityFormat(config.mcpServers);
+    } else if (this.isClaude) {
+      this.transformToClaudeFormat(config.mcpServers);
+    }
+
     // Resolve Paths
     this.resolveMcpPaths(config.mcpServers);
 
@@ -90,6 +107,67 @@ export class ConfigAdapter {
       if (server.cwd) server.cwd = this.resolvePath(server.cwd);
       if (server.env) {
         for (const key in server.env) server.env[key] = this.resolvePath(server.env[key]);
+      }
+    }
+  }
+
+  /**
+   * Transform canonical MCP config to Gemini/Qwen format
+   * - Remove 'type' field (not used)
+   * - Keep 'url' for HTTP servers
+   * - Keep 'command' and 'args' for stdio servers
+   */
+  transformToGeminiFormat(servers) {
+    for (const server of Object.values(servers)) {
+      // Gemini doesn't use the 'type' field
+      delete server.type;
+    }
+  }
+
+  /**
+   * Transform canonical MCP config to Claude Code format
+   * - Ensure 'type' field is present (stdio/http/sse)
+   * - Keep 'url' for HTTP/SSE servers
+   */
+  transformToClaudeFormat(servers) {
+    for (const server of Object.values(servers)) {
+      // Claude requires 'type' field for non-stdio servers
+      if (server.url && !server.type) {
+        // Determine type from URL pattern
+        if (server.url.includes('/sse')) {
+          server.type = 'sse';
+        } else {
+          server.type = 'http';
+        }
+      } else if (server.command && !server.type) {
+        server.type = 'stdio';
+      }
+    }
+  }
+
+  /**
+   * Transform canonical MCP config to Antigravity format
+   * - Ensure 'type' field is present
+   * - Transform 'url' to 'serverUrl' for HTTP/SSE servers
+   * - Support 'disabled' flag
+   */
+  transformToAntigravityFormat(servers) {
+    for (const [name, server] of Object.entries(servers)) {
+      // Ensure type is set
+      if (server.url && !server.type) {
+        if (server.url.includes('/sse')) {
+          server.type = 'sse';
+        } else {
+          server.type = 'http';
+        }
+      } else if (server.command && !server.type) {
+        server.type = 'stdio';
+      }
+
+      // Transform url → serverUrl for HTTP/SSE servers
+      if (server.url && (server.type === 'http' || server.type === 'sse')) {
+        server.serverUrl = server.url;
+        delete server.url;
       }
     }
   }
