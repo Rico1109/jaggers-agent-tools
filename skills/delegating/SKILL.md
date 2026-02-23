@@ -1,17 +1,13 @@
 ---
 name: delegating
 description: >-
-  Delegate tasks to cost-optimized models (CCS) or multi-agent orchestration (Gemini/Qwen).
-  Use when the user asks to "delegate" a task, or for simple deterministic tasks (typos, tests),
-  complex code reviews, or large-scale refactoring that can be offloaded.
-gemini-command: delegate
-gemini-prompt: |
-  1. Analyze the task for keywords:
-     - simple tasks (typo, test, doc, format) -> CCS
-     - complex tasks (review, implement feature, debug) -> Orchestration (Gemini/Qwen)
-  2. If ambiguous, use ask_user to confirm the execution path (Delegate vs Main Session).
-  3. Execute via the optimal backend and report results including backend type and cost indicator.
-version: 7.0.0
+  Proactively delegates tasks to cost-optimized agents before working in main session.
+  MUST suggest for: tests, typos, formatting, docs, refactors, code reviews, feature
+  implementation, debugging, commit validation. Skips main session token usage by routing
+  to GLM (simple/deterministic), Gemini (reasoning/analysis), Qwen (quality/patterns),
+  or multi-agent orchestration (review, feature dev, bug hunt). Never suggest for:
+  architecture decisions, security-critical code, unknown-cause bugs, performance optimization.
+allowed-tools: Bash
 ---
 
 # Delegating Tasks
@@ -41,65 +37,28 @@ Delegate tasks to cost-optimized models (CCS) or multi-agent orchestration workf
 ## Interactive Menu
 
 ### Step 1: Delegation Choice
-```typescript
-ask_user({
-  questions: [{
-    question: "This task can be delegated. How would you like to proceed?",
-    header: "Execution",
-    multiSelect: false,
-    options: [
-      {
-        label: "Delegate (Recommended)",
-        description: "Execute via optimal backend. Saves main session tokens and uses cost-efficient models."
-      },
-      {
-        label: "Work in main session",
-        description: "Execute in current Claude session. Better for tasks requiring discussion or complex context."
-      }
-    ]
-  }]
-});
-```
+
+Use AskUserQuestion with:
+- question: "This task can be delegated. How would you like to proceed?"
+- header: "Execution"
+- options:
+  - "Delegate (Recommended)" — Execute via optimal backend. Saves main session tokens and uses cost-efficient models.
+  - "Work in main session" — Execute in current Claude session. Better for tasks requiring discussion or complex context.
 
 **If user selects "Delegate"** → Continue to Step 2
 **If user selects "Work in main session"** → Execute task normally (don't delegate)
 
 ### Step 2: Backend Selection
-```typescript
-ask_user({
-  questions: [{
-    question: "Which backend should handle this task?",
-    header: "Backend",
-    multiSelect: false,
-    options: [
-      {
-        label: "Auto-select (Recommended)",
-        description: "Analyzes task keywords and selects optimal backend/profile automatically"
-      },
 
-      // CCS Simple
-      {
-        label: "GLM - Cost-optimized",
-        description: "Fast model for tests, typos, formatting [LOW COST]"
-      },
-      {
-        label: "Gemini - Reasoning",
-        description: "Analysis, thinking, architecture tasks [MEDIUM COST]"
-      },
-      {
-        label: "Qwen - Quality",
-        description: "Code quality, pattern detection [MEDIUM COST]"
-      },
-
-      // Multi-Agent Orchestration
-      {
-        label: "Multi-Agent Orchestration",
-        description: "Direct Gemini/Qwen collaboration for complex tasks (review, feature dev, debugging) [HIGH COST]"
-      }
-    ]
-  }]
-});
-```
+Use AskUserQuestion with:
+- question: "Which backend should handle this task?"
+- header: "Backend"
+- options:
+  - "Auto-select (Recommended)" — Analyzes task keywords and selects optimal backend/profile automatically.
+  - "GLM - Cost-optimized" — Fast model for tests, typos, formatting [LOW COST]
+  - "Gemini - Reasoning" — Analysis, thinking, architecture tasks [MEDIUM COST]
+  - "Qwen - Quality" — Code quality, pattern detection [MEDIUM COST]
+  - "Multi-Agent Orchestration" — Direct Gemini/Qwen collaboration for complex tasks (review, feature dev, debugging) [HIGH COST]
 
 ---
 
@@ -147,7 +106,7 @@ When `backend: 'orchestration'` is selected, **Claude autonomously** chooses the
 1. **Parse override flag** (if present: `--glm`, `--gemini`, `--orchestrate`, etc.)
 2. **Auto-select backend** using keyword-based logic.
 3. **Route to appropriate backend:**
-   - **CCS**: `ccs {profile} -p "{task}"`
+   - **CCS**: `env -u CLAUDECODE ccs {profile} -p "{task}"`
    - **Orchestration**:
      - Use `gemini -p` or `qwen` based on the selected pattern.
      - Capture output and pipe to the next agent as needed.
