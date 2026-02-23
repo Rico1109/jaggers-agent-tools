@@ -10,11 +10,11 @@ A system that gives Claude persistent, project-specific operational knowledge ab
 
 | Skill | Role | When it runs |
 |---|---|---|
-| `creating-service-skills` | Builds new skill packages via 2-phase workflow | Manually via `/creating-service-skills` |
+| `creating-service-skills` | Builds new skill packages via 3-phase workflow (scaffold + Serena deep dive + hook registration) | Manually via `/creating-service-skills` |
 | `using-service-skills` | Discovers and activates expert personas | Automatically at session start |
 | `updating-service-skills` | Detects drift when code changes | Automatically on every file write |
 
-**Four hooks** keep everything wired together:
+**Five hooks** keep everything wired together:
 
 | Hook | Type | Trigger | Effect |
 |---|---|---|---|
@@ -47,7 +47,7 @@ Run once, from inside your target project directory:
 
 ```bash
 cd ~/projects/my-project
-python3 /path/to/jaggers-agent-tools/project-skills/install-service-skills.py
+python3 /path/to/jaggers-agent-tools/project-skills/service-skills-set/install-service-skills.py
 ```
 
 This installs the three workflow skills, wires `settings.json` hooks, and activates git hooks. Idempotent — safe to re-run after updates.
@@ -61,7 +61,7 @@ This installs the three workflow skills, wires `settings.json` hooks, and activa
 /creating-service-skills
 ```
 
-The skill runs a **mandatory two-phase workflow**:
+The skill runs a **mandatory three-phase workflow**:
 
 ### Phase 1 — Automated Skeleton
 
@@ -88,12 +88,27 @@ search_for_pattern     → find log strings, SQL queries, env vars
 find_referencing_symbols → trace data flows
 ```
 
+### Phase 3 — Hook Registration
+
+After the deep dive is complete, Claude verifies the auto-activation infrastructure:
+
+1. Confirms the `PreToolUse` hook is present in `.claude/settings.json` (pointing to `skill_activator.py`)
+2. Verifies the service entry in `.claude/skills/service-registry.json` has territory globs set
+3. Informs you that the skill will now auto-activate whenever Claude:
+   - Operates on a file matching the service's territory globs
+   - Runs a Bash command that mentions the service name or container name
+
+No manual registration step is needed — the installer wires the hooks at project setup time. Phase 3 is a verification and communication step only.
+
 A skill is **complete** only when:
 - No `[PENDING RESEARCH]` markers remain
 - `health_probe.py` queries real tables with correct stale thresholds
 - `log_hunter.py` patterns sourced from actual codebase error strings
 - Troubleshooting table has ≥5 rows from real failure modes
 - All scripts support `--json` output
+- `PreToolUse` skill activator hook confirmed in `.claude/settings.json`
+- Service territory globs verified in `.claude/skills/service-registry.json`
+- You have been informed: skill auto-activates on territory file access and service-name commands
 
 ---
 
@@ -192,25 +207,26 @@ python3 .claude/skills/updating-service-skills/scripts/drift_detector.py scan
 }
 ```
 
-The `territory` globs determine which file paths trigger drift detection.
+The `territory` globs determine which file paths trigger drift detection and skill auto-activation.
 
 ---
 
 ## Project Structure
 
 ```
-project-skills/
-├── install-service-skills.py   — installer (run from inside target project)
-├── git-hooks/
-│   ├── doc_reminder.py         — pre-commit: SSOT reminder
-│   └── skill_staleness.py      — pre-push: stale skill warning
-└── <skill-name>/               — reference/example skills
-    ├── SKILL.md
-    ├── scripts/
-    └── references/
+project-skills/service-skills-set/      — this repository's source
+├── install-service-skills.py           — installer (run from inside target project)
+└── .claude/
+    ├── settings.json                   — settings template with all 3 hook events
+    ├── git-hooks/
+    │   ├── doc_reminder.py             — pre-commit: SSOT reminder
+    │   └── skill_staleness.py          — pre-push: stale skill warning
+    ├── creating-service-skills/        — workflow skill: build new service skills
+    ├── using-service-skills/           — workflow skill: catalog injection + skill activation
+    └── updating-service-skills/        — workflow skill: drift detection
 
-.claude/                        — installed into your project
-├── settings.json               — SessionStart + PostToolUse hooks
+.claude/                                — installed into your project
+├── settings.json                       — SessionStart + PreToolUse + PostToolUse hooks
 └── skills/
     ├── service-registry.json
     ├── creating-service-skills/
