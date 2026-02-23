@@ -8,6 +8,15 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from agent_context import AgentContext
 
 # Configuration
+ORCHESTRATION_PATTERNS = [
+    r"review.*(code|security|quality)|code.*(review|audit)",
+    r"security.*(audit|review|scan)",
+    r"implement.*(feature|endpoint|api)|build.*feature",
+    r"(debug|investigate|root.*cause|crash|fix.*unknown)",
+    r"(refactor.*sprint|major.*refactor|migration|technical.*debt)",
+    r"validate.*(commit|staged)|pre.*commit",
+]
+
 CCS_PATTERNS = [
     r"(fix|correggi|risolvi).*typo",
     r"(fix|correggi).*spelling",
@@ -32,7 +41,7 @@ P_PATTERNS = [
 
 EXCLUDE_PATTERNS = [
     r"archit|design|progett",
-    r"security|sicurezz|auth|oauth",
+    r"(add|implement|fix|patch).*(security|auth|oauth)|security.*(vuln|fix|patch)",
     r"bug|debug|investig|indaga",
     r"performance|ottimizz|optim",
     r"migra|breaking.*change",
@@ -60,9 +69,12 @@ def matches(text, patterns):
 try:
     ctx = AgentContext()
     prompt = ctx.prompt
-    
+
     if not prompt:
         ctx.fail_open()
+
+    ccs_available = not bool(os.environ.get('CLAUDECODE'))
+    ccs_hint = "CCS backend" if ccs_available else "Gemini or Qwen directly (CCS unavailable inside Claude Code)"
 
     # 1. Check Exclusions
     if matches(prompt, EXCLUDE_PATTERNS) or matches(prompt, CONVERSATIONAL_PATTERNS):
@@ -76,9 +88,13 @@ try:
 
     # 3. Check CCS Delegation (Simple Tasks)
     if matches(prompt, CCS_PATTERNS):
-        ctx.allow(system_message=f"💡 {agent_name} Internal Reminder: This appears to be a simple, deterministic task (typo/test/format/doc). Consider using the /delegating skill (CCS backend) for cost-optimized execution.")
+        ctx.allow(system_message=f"💡 {agent_name} Internal Reminder: This appears to be a simple, deterministic task (typo/test/format/doc). Consider using the /delegating skill ({ccs_hint}) for cost-optimized execution.")
 
-    # 4. Check Prompt Improving (/p)
+    # 4. Check Orchestration (Complex Tasks)
+    elif matches(prompt, ORCHESTRATION_PATTERNS) and not matches(prompt, EXCLUDE_PATTERNS):
+        ctx.allow(system_message=f"💡 {agent_name} Internal Reminder: This looks like a multi-agent task (review/implement/debug). Consider using the /delegating skill (Gemini+Qwen orchestration) instead of handling in main session.")
+
+    # 5. Check Prompt Improving (/p)
     word_count = len(prompt.split())
     is_vague = matches(prompt, P_PATTERNS)
     
