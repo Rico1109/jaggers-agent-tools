@@ -23,8 +23,11 @@ export function createSyncCommand(): Command {
             // Detect repo root dynamically
             const repoRoot = await findRepoRoot();
 
-            const ctxSpinner = ora('Detecting environments…').start();
+            // getContext() renders an interactive multiselect — start the spinner
+            // only AFTER it returns, otherwise ora's update loop fights with
+            // prompts' rendering and truncates options in the terminal
             const ctx = await getContext();
+            const ctxSpinner = ora('Detecting environments…').start();
             ctxSpinner.succeed('Config loaded');
             
             const { targets, syncMode, config } = ctx;

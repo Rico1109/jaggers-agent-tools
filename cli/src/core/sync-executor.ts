@@ -1,6 +1,8 @@
 import path from 'path';
 import fs from 'fs-extra';
 import kleur from 'kleur';
+// @ts-ignore
+import Conf from 'conf';
 import { transformGeminiConfig, transformSkillToCommand } from '../utils/transform-gemini.js';
 import { safeMergeConfig } from '../utils/atomic-config.js';
 import { ConfigAdapter } from '../utils/config-adapter.js';
@@ -8,9 +10,17 @@ import { syncMcpServersWithCli, loadCanonicalMcpConfig, detectAgent, promptOptio
 import { createBackup, restoreBackup, cleanupBackup, type BackupInfo } from './rollback.js';
 import type { ChangeSet } from '../types/config.js';
 
+// Shared conf store — same projectName as context.ts so they use the same file
+const store = new Conf({ projectName: 'jaggers-config-manager' });
+
 /**
  * Execute a sync plan based on changeset and mode
  */
+// Track which MCP agents have been synced in this process run to prevent duplicate syncs
+// when multiple target directories map to the same agent (e.g. .claude + .gemini + .qwen)
+const syncedMcpAgents = new Set<string>();
+let optionalPromptShownThisRun = false;
+
 export async function executeSync(
     repoRoot: string,
     systemRoot: string,
@@ -35,54 +45,49 @@ export async function executeSync(
 
     try {
         const agent = detectAgent(systemRoot);
-        if (agent && actionType === 'sync') {
-            console.log(kleur.gray(`  --> ${agent} MCP servers (via ${agent} mcp CLI)`));
-            
-            // Check if optional servers prompt was already shown
-            const manifestPath = path.join(systemRoot, '.jaggers-sync-manifest.json');
-            let manifest: any = {};
-            if (await fs.pathExists(manifestPath)) {
-                manifest = await fs.readJson(manifestPath);
-            }
-            
-            const wasOptionalPromptShown = manifest.optionalServersPrompted || false;
-            
-            // Prompt for optional servers if not shown yet
+
+        // Only sync MCP once per unique agent type per process run.
+        // Without this guard, selecting .claude + .gemini + .qwen causes
+        // syncMcpServersWithCli to fire 3 times with identical output.
+        if (agent && actionType === 'sync' && !syncedMcpAgents.has(agent)) {
+            console.log(kleur.bold(`\n  ◆ MCP (${agent})`));
+
+            // Prompt for optional servers once per process run AND only if never
+            // asked before (persisted in manifest). This prevents the prompt from
+            // firing on every subsequent `jaggers-config sync` invocation.
             let includeOptional = false;
             let selectedOptionalServers: string[] = [];
-            
-            if (!wasOptionalPromptShown) {
-                const selected = await promptOptionalServers(repoRoot);
-                if (selected && Array.isArray(selected)) {
-                    includeOptional = selected.length > 0;
-                    selectedOptionalServers = selected;
+
+            if (!optionalPromptShownThisRun) {
+                const wasAskedBefore = store.get('optionalServersPrompted', false);
+
+                if (!wasAskedBefore) {
+                    const selected = await promptOptionalServers(repoRoot);
+                    if (selected && Array.isArray(selected)) {
+                        includeOptional = selected.length > 0;
+                        selectedOptionalServers = selected;
+                    }
+                    store.set('optionalServersPrompted', true);
                 }
-                // Mark that prompt was shown (even if user declined)
-                manifest.optionalServersPrompted = true;
+                optionalPromptShownThisRun = true;
             }
-            
+
             const canonicalConfig = loadCanonicalMcpConfig(repoRoot, includeOptional);
-            
-            // If user selected specific optional servers, filter to only those
+
             if (selectedOptionalServers.length > 0 && canonicalConfig.mcpServers) {
                 const filteredServers: any = {};
                 const coreServers = fs.readJsonSync(path.join(repoRoot, 'config', 'mcp_servers.json')).mcpServers;
                 for (const [name, server] of Object.entries(canonicalConfig.mcpServers)) {
-                    // Include all core servers + selected optional ones
                     if (coreServers[name] || selectedOptionalServers.includes(name)) {
                         filteredServers[name] = server;
                     }
                 }
                 canonicalConfig.mcpServers = filteredServers;
             }
-            
+
             await syncMcpServersWithCli(agent, canonicalConfig, isDryRun, mode === 'prune');
+            syncedMcpAgents.add(agent);
             count++;
-            
-            // Update manifest to track that prompt was shown
-            if (!isDryRun) {
-                await fs.writeJson(manifestPath, manifest, { spaces: 2 });
-            }
         }
 
         for (const category of categories) {
@@ -93,7 +98,6 @@ export async function executeSync(
                 itemsToProcess.push(...cat.missing);
                 itemsToProcess.push(...cat.outdated);
 
-                // PRUNE: Handle removals from system if no longer in repo
                 if (mode === 'prune') {
                     for (const itemToDelete of cat.drifted || []) {
                         const dest = path.join(systemRoot, category, itemToDelete);
@@ -121,6 +125,7 @@ export async function executeSync(
 
                     console.log(kleur.gray(`  --> config/settings.json`));
 
+                    const agent = detectAgent(systemRoot);
                     if (agent) {
                         console.log(kleur.gray(`  (Skipped: ${agent} uses ${agent} mcp CLI for MCP servers)`));
                         count++;
@@ -161,7 +166,7 @@ export async function executeSync(
                         }
 
                         const mergeResult = await safeMergeConfig(dest, finalRepoConfig, {
-                            backupOnSuccess: false, // Handled by our own rollback system
+                            backupOnSuccess: false,
                             preserveComments: true,
                             dryRun: isDryRun,
                             resolvedLocalConfig: resolvedLocalConfig
@@ -181,7 +186,6 @@ export async function executeSync(
                     continue;
                 }
 
-                // Standard file sync for other items
                 const repoPath = category === 'commands' ? path.join(repoRoot, '.gemini', 'commands') :
                     category === 'qwen-commands' ? path.join(repoRoot, '.qwen', 'commands') :
                         category === 'antigravity-workflows' ? path.join(repoRoot, '.gemini', 'antigravity', 'global_workflows') :
@@ -229,11 +233,9 @@ export async function executeSync(
                         const result = await transformSkillToCommand(skillMdPath);
                         if (result && !isDryRun) {
                             const commandDest = path.join(systemRoot, 'commands', `${result.commandName}.toml`);
-
                             if (await fs.pathExists(commandDest)) {
                                 backups.push(await createBackup(commandDest));
                             }
-
                             await fs.ensureDir(path.dirname(commandDest));
                             await fs.writeFile(commandDest, result.toml);
                             console.log(kleur.cyan(`      (Auto-generated slash command: /${result.commandName})`));
@@ -247,15 +249,17 @@ export async function executeSync(
 
         if (!isDryRun && actionType === 'sync') {
             const manifestPath = path.join(systemRoot, '.jaggers-sync-manifest.json');
-            const manifest = {
+            const existing = await fs.pathExists(manifestPath)
+                ? await fs.readJson(manifestPath)
+                : {};
+            await fs.writeJson(manifestPath, {
+                ...existing,
                 lastSync: new Date().toISOString(),
                 repoRoot,
                 items: count
-            };
-            await fs.writeJson(manifestPath, manifest, { spaces: 2 });
+            }, { spaces: 2 });
         }
 
-        // Cleanup backups on success
         for (const backup of backups) {
             await cleanupBackup(backup);
         }

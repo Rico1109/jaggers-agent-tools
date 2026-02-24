@@ -20310,12 +20310,12 @@ var init_source = __esm({
         const fileExtension = options.fileExtension ? `.${options.fileExtension}` : "";
         this.path = import_node_path4.default.resolve(options.cwd, `${options.configName ?? "config"}${fileExtension}`);
         const fileStore = this.store;
-        const store = Object.assign(createPlainObject(), options.defaults, fileStore);
-        this._validate(store);
+        const store2 = Object.assign(createPlainObject(), options.defaults, fileStore);
+        this._validate(store2);
         try {
-          import_node_assert.default.deepEqual(fileStore, store);
+          import_node_assert.default.deepEqual(fileStore, store2);
         } catch {
-          this.store = store;
+          this.store = store2;
         }
         if (options.watch) {
           this._watch();
@@ -20331,8 +20331,8 @@ var init_source = __esm({
         if (this.#options.accessPropertiesByDotNotation) {
           return this._get(key, defaultValue);
         }
-        const { store } = this;
-        return key in store ? store[key] : defaultValue;
+        const { store: store2 } = this;
+        return key in store2 ? store2[key] : defaultValue;
       }
       set(key, value) {
         if (typeof key !== "string" && typeof key !== "object") {
@@ -20344,13 +20344,13 @@ var init_source = __esm({
         if (this._containsReservedKey(key)) {
           throw new TypeError(`Please don't use the ${INTERNAL_KEY} key, as it's used to manage this module internal operations.`);
         }
-        const { store } = this;
+        const { store: store2 } = this;
         const set2 = (key2, value2) => {
           checkValueType(key2, value2);
           if (this.#options.accessPropertiesByDotNotation) {
-            setProperty(store, key2, value2);
+            setProperty(store2, key2, value2);
           } else {
-            store[key2] = value2;
+            store2[key2] = value2;
           }
         };
         if (typeof key === "object") {
@@ -20361,7 +20361,7 @@ var init_source = __esm({
         } else {
           set2(key, value);
         }
-        this.store = store;
+        this.store = store2;
       }
       /**
           Check if an item exists.
@@ -20389,13 +20389,13 @@ var init_source = __esm({
         }
       }
       delete(key) {
-        const { store } = this;
+        const { store: store2 } = this;
         if (this.#options.accessPropertiesByDotNotation) {
-          deleteProperty(store, key);
+          deleteProperty(store2, key);
         } else {
-          delete store[key];
+          delete store2[key];
         }
-        this.store = store;
+        this.store = store2;
       }
       /**
           Delete all items.
@@ -20620,9 +20620,9 @@ var init_source = __esm({
         return getProperty(this.store, key, defaultValue);
       }
       _set(key, value) {
-        const { store } = this;
-        setProperty(store, key, value);
-        this.store = store;
+        const { store: store2 } = this;
+        setProperty(store2, key, value);
+        this.store = store2;
       }
     };
   }
@@ -32807,6 +32807,7 @@ async function compareItem(category, item, repoPath, systemPath, changeSet, prun
 var import_path10 = __toESM(require("path"), 1);
 var import_fs_extra9 = __toESM(require_lib2(), 1);
 init_kleur();
+init_source();
 
 // src/utils/transform-gemini.ts
 var import_fs_extra4 = __toESM(require_lib2(), 1);
@@ -33517,44 +33518,56 @@ function getCurrentServers(agent) {
     return [];
   }
 }
+var envInitialized = false;
 async function syncMcpServersWithCli(agent, mcpConfig, dryRun = false, prune = false) {
   const cli = AGENT_CLI[agent];
   if (!cli) {
     console.log(kleur_default.yellow(`  \u26A0\uFE0F  Unsupported agent: ${agent}`));
     return;
   }
-  console.log(kleur_default.bold(`
-Syncing MCP servers to ${agent}...`));
-  ensureEnvFile();
-  loadEnvFile();
-  const missingEnvVars = checkRequiredEnvVars();
-  if (missingEnvVars.length > 0) {
-    handleMissingEnvVars(missingEnvVars);
+  if (!envInitialized) {
+    ensureEnvFile();
+    loadEnvFile();
+    envInitialized = true;
   }
   const currentServers = getCurrentServers(agent);
+  const currentServersSet = new Set(currentServers);
   const canonicalServers = new Set(Object.keys(mcpConfig.mcpServers || {}));
   if (prune) {
-    console.log(kleur_default.red("\n  Prune mode: Removing servers not in canonical config..."));
-    for (const serverName of currentServers) {
-      if (!canonicalServers.has(serverName)) {
-        console.log(kleur_default.red(`  Removing: ${serverName}`));
+    const toRemove = currentServers.filter((s) => !canonicalServers.has(s));
+    if (toRemove.length > 0) {
+      console.log(kleur_default.red(`  Pruning ${toRemove.length} server(s)...`));
+      for (const serverName of toRemove) {
         executeCommand(agent, cli.remove(serverName), dryRun);
       }
     }
   }
-  console.log(kleur_default.cyan("\n  Adding/Updating canonical servers..."));
+  const toAdd = Object.entries(mcpConfig.mcpServers || {}).filter(([name]) => !currentServersSet.has(name));
+  const skippedCount = canonicalServers.size - toAdd.length;
+  if (toAdd.length === 0) {
+    console.log(kleur_default.dim(`  \u2713 ${skippedCount} server(s) already installed`));
+    return;
+  }
+  const missingEnvVars = checkRequiredEnvVars();
+  if (missingEnvVars.length > 0) {
+    handleMissingEnvVars(missingEnvVars);
+  }
   let successCount = 0;
-  for (const [name, server] of Object.entries(mcpConfig.mcpServers)) {
+  for (const [name, server] of toAdd) {
     const cmd = buildAddCommand(agent, name, server);
     if (cmd) {
       const result = executeCommand(agent, cmd, dryRun);
       if (result.success) {
         successCount++;
+        console.log(kleur_default.green(`  + ${name}`));
       }
     }
   }
-  console.log(kleur_default.green(`
-  \u2713 Synced ${successCount} MCP servers`));
+  if (skippedCount > 0) {
+    console.log(kleur_default.dim(`  \u2713 ${skippedCount} already installed, ${successCount} added`));
+  } else {
+    console.log(kleur_default.green(`  \u2713 ${successCount} server(s) added`));
+  }
 }
 function loadCanonicalMcpConfig(repoRoot, includeOptional = false) {
   const corePath = import_path9.default.join(repoRoot, "config", "mcp_servers.json");
@@ -33584,35 +33597,24 @@ async function promptOptionalServers(repoRoot) {
   if (servers.length === 0) {
     return false;
   }
-  console.log(kleur_default.bold("\n\u{1F4E6} Optional MCP Servers Available:"));
-  console.log(kleur_default.dim("   These are not installed by default.\n"));
-  for (let i = 0; i < servers.length; i++) {
-    const server = servers[i];
-    console.log(kleur_default.cyan(`   [${i + 1}] ${server.name}`));
-    console.log(kleur_default.dim(`      ${server.description}`));
-    if (server.prerequisite) {
-      console.log(kleur_default.yellow(`      \u26A0\uFE0F  ${server.prerequisite}`));
-    }
-  }
-  console.log(kleur_default.dim("\n   Enter numbers separated by commas (e.g., 1,2) or press Enter to skip.\n"));
   const prompts3 = await Promise.resolve().then(() => __toESM(require_prompts3(), 1));
-  const { selection } = await prompts3.default({
-    type: "text",
-    name: "selection",
-    message: "Which optional servers would you like to install?",
-    initial: "",
-    format: (val) => val.trim()
+  const { selected } = await prompts3.default({
+    type: "multiselect",
+    name: "selected",
+    message: "Optional MCP servers available \u2014 select to install (space to toggle, enter to confirm):",
+    choices: servers.map((s) => ({
+      title: s.name,
+      description: s.prerequisite ? `${s.description} \u2014 \u26A0\uFE0F  ${s.prerequisite}` : s.description,
+      value: s.name,
+      selected: false
+    })),
+    hint: "- Space to select. Enter to skip or confirm.",
+    instructions: false
   });
-  if (!selection || selection.trim() === "") {
+  if (!selected || selected.length === 0) {
     console.log(kleur_default.gray("  Skipping optional servers.\n"));
     return false;
   }
-  const selectedIndices = selection.split(/[,\s]+/).map((s) => parseInt(s.trim(), 10) - 1).filter((n) => !isNaN(n) && n >= 0 && n < servers.length);
-  if (selectedIndices.length === 0) {
-    console.log(kleur_default.gray("  No valid selection. Skipping optional servers.\n"));
-    return false;
-  }
-  const selected = selectedIndices.map((i) => servers[i].name);
   console.log(kleur_default.green(`  Selected: ${selected.join(", ")}
 `));
   return selected;
@@ -33642,6 +33644,9 @@ async function cleanupBackup(backup) {
 }
 
 // src/core/sync-executor.ts
+var store = new Conf({ projectName: "jaggers-config-manager" });
+var syncedMcpAgents = /* @__PURE__ */ new Set();
+var optionalPromptShownThisRun = false;
 async function executeSync(repoRoot, systemRoot, changeSet, mode, actionType, isDryRun = false) {
   const isClaude = systemRoot.includes(".claude") || systemRoot.includes("Claude");
   const isQwen = systemRoot.includes(".qwen") || systemRoot.includes("Qwen");
@@ -33655,23 +33660,22 @@ async function executeSync(repoRoot, systemRoot, changeSet, mode, actionType, is
   const backups = [];
   try {
     const agent = detectAgent(systemRoot);
-    if (agent && actionType === "sync") {
-      console.log(kleur_default.gray(`  --> ${agent} MCP servers (via ${agent} mcp CLI)`));
-      const manifestPath = import_path10.default.join(systemRoot, ".jaggers-sync-manifest.json");
-      let manifest = {};
-      if (await import_fs_extra9.default.pathExists(manifestPath)) {
-        manifest = await import_fs_extra9.default.readJson(manifestPath);
-      }
-      const wasOptionalPromptShown = manifest.optionalServersPrompted || false;
+    if (agent && actionType === "sync" && !syncedMcpAgents.has(agent)) {
+      console.log(kleur_default.bold(`
+  \u25C6 MCP (${agent})`));
       let includeOptional = false;
       let selectedOptionalServers = [];
-      if (!wasOptionalPromptShown) {
-        const selected = await promptOptionalServers(repoRoot);
-        if (selected && Array.isArray(selected)) {
-          includeOptional = selected.length > 0;
-          selectedOptionalServers = selected;
+      if (!optionalPromptShownThisRun) {
+        const wasAskedBefore = store.get("optionalServersPrompted", false);
+        if (!wasAskedBefore) {
+          const selected = await promptOptionalServers(repoRoot);
+          if (selected && Array.isArray(selected)) {
+            includeOptional = selected.length > 0;
+            selectedOptionalServers = selected;
+          }
+          store.set("optionalServersPrompted", true);
         }
-        manifest.optionalServersPrompted = true;
+        optionalPromptShownThisRun = true;
       }
       const canonicalConfig = loadCanonicalMcpConfig(repoRoot, includeOptional);
       if (selectedOptionalServers.length > 0 && canonicalConfig.mcpServers) {
@@ -33685,10 +33689,8 @@ async function executeSync(repoRoot, systemRoot, changeSet, mode, actionType, is
         canonicalConfig.mcpServers = filteredServers;
       }
       await syncMcpServersWithCli(agent, canonicalConfig, isDryRun, mode === "prune");
+      syncedMcpAgents.add(agent);
       count++;
-      if (!isDryRun) {
-        await import_fs_extra9.default.writeJson(manifestPath, manifest, { spaces: 2 });
-      }
     }
     for (const category of categories) {
       const itemsToProcess = [];
@@ -33719,8 +33721,9 @@ async function executeSync(repoRoot, systemRoot, changeSet, mode, actionType, is
           src = import_path10.default.join(repoRoot, "config", "settings.json");
           dest = import_path10.default.join(systemRoot, "settings.json");
           console.log(kleur_default.gray(`  --> config/settings.json`));
-          if (agent) {
-            console.log(kleur_default.gray(`  (Skipped: ${agent} uses ${agent} mcp CLI for MCP servers)`));
+          const agent2 = detectAgent(systemRoot);
+          if (agent2) {
+            console.log(kleur_default.gray(`  (Skipped: ${agent2} uses ${agent2} mcp CLI for MCP servers)`));
             count++;
             continue;
           }
@@ -33754,7 +33757,6 @@ async function executeSync(repoRoot, systemRoot, changeSet, mode, actionType, is
             }
             const mergeResult = await safeMergeConfig(dest, finalRepoConfig, {
               backupOnSuccess: false,
-              // Handled by our own rollback system
               preserveComments: true,
               dryRun: isDryRun,
               resolvedLocalConfig
@@ -33822,12 +33824,13 @@ async function executeSync(repoRoot, systemRoot, changeSet, mode, actionType, is
     }
     if (!isDryRun && actionType === "sync") {
       const manifestPath = import_path10.default.join(systemRoot, ".jaggers-sync-manifest.json");
-      const manifest = {
+      const existing = await import_fs_extra9.default.pathExists(manifestPath) ? await import_fs_extra9.default.readJson(manifestPath) : {};
+      await import_fs_extra9.default.writeJson(manifestPath, {
+        ...existing,
         lastSync: (/* @__PURE__ */ new Date()).toISOString(),
         repoRoot,
         items: count
-      };
-      await import_fs_extra9.default.writeJson(manifestPath, manifest, { spaces: 2 });
+      }, { spaces: 2 });
     }
     for (const backup of backups) {
       await cleanupBackup(backup);
@@ -33891,8 +33894,8 @@ function createSyncCommand() {
     const { dryRun, yes, prune, backport } = opts;
     const actionType = backport ? "backport" : "sync";
     const repoRoot = await findRepoRoot();
-    const ctxSpinner = ora("Detecting environments\u2026").start();
     const ctx = await getContext();
+    const ctxSpinner = ora("Detecting environments\u2026").start();
     ctxSpinner.succeed("Config loaded");
     const { targets, syncMode, config: config3 } = ctx;
     const allChanges = [];
