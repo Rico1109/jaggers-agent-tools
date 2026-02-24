@@ -52095,20 +52095,27 @@ function createStatusCommand() {
     console.log(kleur_default.yellow(`
   \u26A0  ${totalPending} pending change${totalPending !== 1 ? "s" : ""} across ${pending.length} environment${pending.length !== 1 ? "s" : ""}
 `));
-    const { proceed } = await (0, import_prompts3.default)({
-      type: "confirm",
-      name: "proceed",
-      message: "Apply sync now?",
-      initial: true
+    const { selected } = await (0, import_prompts3.default)({
+      type: "multiselect",
+      name: "selected",
+      message: "Select environments to sync:",
+      choices: pending.map((r) => ({
+        title: `${r.name}  ${kleur_default.gray(`(${r.totalChanges} change${r.totalChanges !== 1 ? "s" : ""})`)}`,
+        value: r.path,
+        selected: true
+      })),
+      hint: "- Space to toggle. Enter to confirm. Esc to skip.",
+      instructions: false
     });
-    if (!proceed) {
+    if (!selected || selected.length === 0) {
       console.log(kleur_default.gray("  Skipped. Run jaggers-config sync anytime to apply.\n"));
       return;
     }
+    const toSync = pending.filter((r) => selected.includes(r.path));
     const store2 = new Conf({ projectName: "jaggers-config-manager" });
     const syncMode = store2.get("syncMode") || "copy";
     let totalSynced = 0;
-    for (const r of pending) {
+    for (const r of toSync) {
       console.log(kleur_default.bold(`
   \u2192 ${r.name}`));
       const count = await executeSync(repoRoot, r.path, r.changes, syncMode, "sync", false);

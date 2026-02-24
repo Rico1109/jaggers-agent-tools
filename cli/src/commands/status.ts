@@ -126,24 +126,32 @@ export function createStatusCommand(): Command {
             console.log(kleur.yellow(`\n  ⚠  ${totalPending} pending change${totalPending !== 1 ? 's' : ''} across ${pending.length} environment${pending.length !== 1 ? 's' : ''}\n`));
 
             // ── Inline sync offer ────────────────────────────────────────────
-            const { proceed } = await prompts({
-                type: 'confirm',
-                name: 'proceed',
-                message: 'Apply sync now?',
-                initial: true,
+            const { selected } = await prompts({
+                type: 'multiselect',
+                name: 'selected',
+                message: 'Select environments to sync:',
+                choices: pending.map(r => ({
+                    title: `${r.name}  ${kleur.gray(`(${r.totalChanges} change${r.totalChanges !== 1 ? 's' : ''})`)}`,
+                    value: r.path,
+                    selected: true,
+                })),
+                hint: '- Space to toggle. Enter to confirm. Esc to skip.',
+                instructions: false,
             });
 
-            if (!proceed) {
+            if (!selected || selected.length === 0) {
                 console.log(kleur.gray('  Skipped. Run jaggers-config sync anytime to apply.\n'));
                 return;
             }
+
+            const toSync = pending.filter(r => selected.includes(r.path));
 
             // Reuse the already-computed changeSets — no second diff needed
             const store = new Conf({ projectName: 'jaggers-config-manager' });
             const syncMode = (store.get('syncMode') as string) || 'copy';
 
             let totalSynced = 0;
-            for (const r of pending) {
+            for (const r of toSync) {
                 console.log(kleur.bold(`\n  → ${r.name}`));
                 const count = await executeSync(repoRoot, r.path, r.changes as any, syncMode as any, 'sync', false);
                 totalSynced += count;
