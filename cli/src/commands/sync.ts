@@ -2,136 +2,181 @@ import { Command } from 'commander';
 import kleur from 'kleur';
 // @ts-ignore
 import prompts from 'prompts';
-import ora from 'ora';
+import { Listr } from 'listr2';
 import { getContext } from '../core/context.js';
 import { calculateDiff, PruneModeReadError } from '../core/diff.js';
 import { executeSync } from '../core/sync-executor.js';
 import { findRepoRoot } from '../utils/repo-root.js';
+import { t, sym } from '../utils/theme.js';
 import path from 'path';
+
+interface TargetChanges {
+    target: string;
+    changeSet: any;
+    totalChanges: number;
+    skippedDrifted: string[];
+    error?: string;
+}
+
+interface DiffCtx {
+    allChanges: TargetChanges[];
+}
+
+function renderPlanTable(allChanges: TargetChanges[]): void {
+    // Dynamic import handled at call site — Table is CJS so require works
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const Table = require('cli-table3');
+
+    const table = new Table({
+        head: [
+            t.bold('Target'),
+            t.bold(kleur.green('+ New')),
+            t.bold(kleur.yellow('↑ Update')),
+            t.bold(kleur.red('! Drift')),
+            t.bold('Total'),
+        ],
+        style: { head: [], border: [] },
+    });
+
+    for (const { target, changeSet, totalChanges } of allChanges) {
+        const missing  = Object.values(changeSet).reduce((s: number, c: any) => s + c.missing.length,  0) as number;
+        const outdated = Object.values(changeSet).reduce((s: number, c: any) => s + c.outdated.length, 0) as number;
+        const drifted  = Object.values(changeSet).reduce((s: number, c: any) => s + c.drifted.length,  0) as number;
+
+        table.push([
+            path.basename(target),
+            missing  > 0 ? kleur.green(String(missing))  : t.muted('—'),
+            outdated > 0 ? kleur.yellow(String(outdated)) : t.muted('—'),
+            drifted  > 0 ? kleur.red(String(drifted))    : t.muted('—'),
+            t.bold(String(totalChanges)),
+        ]);
+    }
+
+    console.log('\n' + table.toString() + '\n');
+}
+
+async function renderSummaryCard(
+    allChanges: TargetChanges[],
+    totalCount: number,
+    allSkipped: string[],
+    isDryRun: boolean,
+): Promise<void> {
+    const boxen = (await import('boxen')).default;
+
+    const hasDrift = allSkipped.length > 0;
+    const lines = [
+        hasDrift ? t.boldGreen('  ✓ Sync complete') + t.warning('  (with skipped drift)') : t.boldGreen('  ✓ Sync complete'),
+        '',
+        `  ${t.muted('Targets')}   ${allChanges.length} environment${allChanges.length !== 1 ? 's' : ''}`,
+        `  ${t.muted('Synced')}    ${totalCount} item${totalCount !== 1 ? 's' : ''}`,
+        ...(hasDrift ? [
+            `  ${t.muted('Skipped')}   ${kleur.yellow(String(allSkipped.length))} drifted (local changes preserved)`,
+            `  ${t.muted('Hint')}      run ${t.accent('jaggers-config sync --backport')} to push them back`,
+        ] : []),
+        ...(isDryRun ? ['', t.accent('  Dry run — no changes written')] : []),
+    ];
+
+    console.log('\n' + boxen(lines.join('\n'), {
+        padding: { top: 1, bottom: 1, left: 1, right: 3 },
+        borderStyle: 'round',
+        borderColor: hasDrift ? 'yellow' : 'green',
+    }) + '\n');
+}
 
 export function createSyncCommand(): Command {
     return new Command('sync')
         .description('Sync agent tools (skills, hooks, config) to target environments')
         .option('--dry-run', 'Preview changes without making any modifications', false)
-        .option('-y, --yes', 'Skip confirmation prompts', false)
-        .option('--prune', 'Remove items not in the canonical repository', false)
+        .option('-y, --yes',  'Skip confirmation prompts', false)
+        .option('--prune',    'Remove items not in the canonical repository', false)
         .option('--backport', 'Backport drifted local changes back to the repository', false)
         .action(async (opts) => {
             const { dryRun, yes, prune, backport } = opts;
             const actionType = backport ? 'backport' : 'sync';
-            
-            // Detect repo root dynamically
+
             const repoRoot = await findRepoRoot();
-
-            // getContext() renders an interactive multiselect — start the spinner
-            // only AFTER it returns, otherwise ora's update loop fights with
-            // prompts' rendering and truncates options in the terminal
             const ctx = await getContext();
-            ora(`${ctx.targets.length} target(s) selected`).succeed();
-            
-            const { targets, syncMode, config } = ctx;
+            const { targets, syncMode } = ctx;
 
-            // Collect all changesets first
-            interface TargetChanges {
-                target: string;
-                changeSet: any;
-                totalChanges: number;
-                skippedDrifted: string[];
-            }
-            
-            const allChanges: TargetChanges[] = [];
-            let totalCount = 0;
+            // ── Phase 1: Diff (concurrent via listr2) ──────────────────────
+            const diffTasks = new Listr<DiffCtx>(
+                targets.map(target => ({
+                    title: path.basename(target),
+                    task: async (listCtx, task) => {
+                        try {
+                            const changeSet = await calculateDiff(repoRoot, target, prune);
+                            const totalChanges = Object.values(changeSet).reduce(
+                                (sum, c: any) => sum + c.missing.length + c.outdated.length + c.drifted.length, 0,
+                            );
+                            task.title = `${path.basename(target)}${t.muted(` — ${totalChanges} change${totalChanges !== 1 ? 's' : ''}`)}`;
+                            if (totalChanges > 0) {
+                                listCtx.allChanges.push({ target, changeSet, totalChanges, skippedDrifted: [] });
+                            }
+                        } catch (err) {
+                            if (err instanceof PruneModeReadError) {
+                                task.title = `${path.basename(target)} ${kleur.red('(skipped — cannot read in prune mode)')}`;
+                            } else {
+                                throw err;
+                            }
+                        }
+                    },
+                })),
+                { concurrent: true, exitOnError: false },
+            );
 
-            for (const target of targets) {
-                const diffSpinner = ora(`Calculating diff for ${path.basename(target)}…`).start();
-                const changeSet = await calculateDiff(repoRoot, target, prune);
-                const totalChanges = Object.values(changeSet).reduce((sum, cat: any) => {
-                    return sum + cat.missing.length + cat.outdated.length + cat.drifted.length;
-                }, 0);
-                
-                diffSpinner.succeed('Plan generated');
-
-                if (totalChanges === 0) {
-                    continue;
-                }
-
-                allChanges.push({ target, changeSet, totalChanges, skippedDrifted: [] });
-            }
+            const diffCtx = await diffTasks.run({ allChanges: [] });
+            const allChanges = diffCtx.allChanges;
 
             if (allChanges.length === 0) {
-                console.log(kleur.green('\n✓ All targets are up-to-date\n'));
+                console.log('\n' + t.boldGreen('✓ All targets are up-to-date') + '\n');
                 return;
             }
 
-            // Display full plan
-            console.log(kleur.bold('\n📋 Sync Plan:'));
-            for (const { target, changeSet, totalChanges } of allChanges) {
-                console.log(kleur.bold(`\n📂 ${path.basename(target)} → ${totalChanges} changes`));
-                
-                for (const [category, cat] of Object.entries(changeSet)) {
-                    const c = cat as any;
-                    if (c.missing.length > 0) {
-                        console.log(kleur.yellow(`  + ${c.missing.length} missing ${category}: ${c.missing.join(', ')}`));
-                    }
-                    if (c.outdated.length > 0) {
-                        console.log(kleur.blue(`  ↑ ${c.outdated.length} outdated ${category}: ${c.outdated.join(', ')}`));
-                    }
-                    if (c.drifted.length > 0) {
-                        console.log(kleur.red(`  ✗ ${c.drifted.length} drifted ${category}: ${c.drifted.join(', ')}`));
-                    }
-                }
-            }
+            // ── Phase 2: Plan table ─────────────────────────────────────────
+            renderPlanTable(allChanges);
 
-            // Show dry-run notice after plan
             if (dryRun) {
-                console.log(kleur.cyan('\n💡 Dry run — no changes written\n'));
+                console.log(t.accent('💡 Dry run — no changes written\n'));
+                return;
             }
 
-            // Ask for confirmation once
-            if (!yes && !dryRun) {
-                const totalChangesCount = allChanges.reduce((sum, c) => sum + c.totalChanges, 0);
+            // ── Phase 3: Confirmation ───────────────────────────────────────
+            if (!yes) {
+                const totalChangesCount = allChanges.reduce((s, c) => s + c.totalChanges, 0);
                 const { confirm } = await prompts({
                     type: 'confirm',
                     name: 'confirm',
                     message: `Proceed with ${actionType} (${totalChangesCount} total changes)?`,
                     initial: true,
                 });
-
                 if (!confirm) {
-                    console.log(kleur.gray('  Sync cancelled.\n'));
+                    console.log(t.muted('  Sync cancelled.\n'));
                     return;
                 }
             }
 
-            // Execute sync for all targets
+            // ── Phase 4: Execute sync ───────────────────────────────────────
+            let totalCount = 0;
+
             for (const { target, changeSet, skippedDrifted } of allChanges) {
-                console.log(kleur.bold(`\n📂 Target: ${path.basename(target)}`));
-                
-                const syncSpinner = ora(`Applying changes to ${path.basename(target)}…`).start();
+                console.log(t.bold(`\n  ${sym.arrow} ${path.basename(target)}`));
+
                 const count = await executeSync(repoRoot, target, changeSet, syncMode, actionType, dryRun);
-                syncSpinner.succeed(`Synced ${count} items`);
-                
                 totalCount += count;
-                
-                // Track skipped drifted items
+
+                // Track skipped drifted
                 for (const [category, cat] of Object.entries(changeSet)) {
                     const c = cat as any;
                     if (c.drifted.length > 0 && actionType === 'sync') {
                         skippedDrifted.push(...c.drifted.map((item: string) => `${category}/${item}`));
                     }
                 }
+
+                console.log(t.success(`  ${sym.ok} ${count} item${count !== 1 ? 's' : ''} synced`));
             }
 
-            // Report skipped drifted items
+            // ── Phase 5: Summary card ───────────────────────────────────────
             const allSkipped = allChanges.flatMap(c => c.skippedDrifted);
-            if (allSkipped.length > 0 && actionType === 'sync' && !dryRun) {
-                console.log(kleur.yellow(`\n  ⚠ ${allSkipped.length} drifted item(s) skipped (local edits preserved):`));
-                for (const item of allSkipped) {
-                    console.log(kleur.yellow(`      ${item}`));
-                }
-                console.log(kleur.yellow(`  Run 'jaggers-config sync --backport' to push them back.\n`));
-            }
-
-            console.log(kleur.bold(kleur.green(`\n✓ Total: ${totalCount} items synced\n`)));
+            await renderSummaryCard(allChanges, totalCount, allSkipped, dryRun);
         });
 }

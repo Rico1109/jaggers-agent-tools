@@ -1,6 +1,5 @@
 import { Command } from 'commander';
 import kleur from 'kleur';
-import ora from 'ora';
 import { getContext } from '../core/context.js';
 import { calculateDiff } from '../core/diff.js';
 import { findRepoRoot } from '../utils/repo-root.js';
@@ -25,70 +24,90 @@ function formatRelativeTime(timestamp: number): string {
 export function createStatusCommand(): Command {
     return new Command('status')
         .description('Show diff between repo and target environments (read-only)')
-        .action(async () => {
-            const loadingSpinner = ora('Checking environments…').start();
-            
+        .option('--json', 'Output machine-readable JSON', false)
+        .action(async (opts) => {
+            const { json } = opts;
+
             const repoRoot = await findRepoRoot();
             const ctx = await getContext();
             const { targets } = ctx;
 
-            loadingSpinner.succeed('Status loaded');
-
-            for (const target of targets) {
-                console.log(kleur.bold(`\n📂 ${path.basename(target)}`));
-
-                // Try to load manifest for last sync time
-                try {
-                    const manifestPath = getManifestPath(target);
-                    if (await fs.pathExists(manifestPath)) {
-                        const manifest = await fs.readJson(manifestPath);
-                        if (manifest.lastSync) {
-                            console.log(kleur.gray(`  Last synced: ${formatRelativeTime(new Date(manifest.lastSync).getTime())}`));
-                        }
-                        // Count items from manifest
-                        const itemCounts: string[] = [];
-                        if (manifest.skills) itemCounts.push(`${manifest.skills} skills`);
-                        if (manifest.hooks) itemCounts.push(`${manifest.hooks} hooks`);
-                        if (manifest.config) itemCounts.push(`${manifest.config} config`);
-                        if (itemCounts.length > 0) {
-                            console.log(kleur.gray(`  Manifest: ${itemCounts.join(', ')}`));
-                        }
-                    }
-                } catch (e) {
-                    // Manifest not found or invalid, skip
-                }
-
-                const changeSet = await calculateDiff(repoRoot, target);
-                let hasChanges = false;
-                let totalChanges = 0;
-
-                for (const [category, cat] of Object.entries(changeSet)) {
-                    const c = cat as any;
-                    const categoryChanges = c.missing.length + c.outdated.length + c.drifted.length;
-                    totalChanges += categoryChanges;
-                    
-                    if (categoryChanges === 0) continue;
-                    hasChanges = true;
-
-                    if (c.missing.length > 0) {
-                        console.log(kleur.yellow(`  + ${c.missing.length} missing ${category}`));
-                    }
-                    if (c.outdated.length > 0) {
-                        console.log(kleur.blue(`  ↑ ${c.outdated.length} outdated ${category}`));
-                    }
-                    if (c.drifted.length > 0) {
-                        console.log(kleur.red(`  ✗ ${c.drifted.length} drifted ${category}`));
-                    }
-                }
-
-                if (!hasChanges) {
-                    console.log(kleur.green('  ✓ Up-to-date'));
-                } else {
-                    // Show health indicator
-                    console.log(kleur.yellow(`\n  ⚠ Pending changes: ${totalChanges}`));
-                }
+            // Collect data for all targets
+            interface TargetStatus {
+                path: string;
+                name: string;
+                lastSync: string | null;
+                changes: Record<string, { missing: string[]; outdated: string[]; drifted: string[] }>;
+                totalChanges: number;
             }
 
-            console.log(kleur.gray('\n💡 Run `jaggers-config sync` to apply changes\n'));
+            const results: TargetStatus[] = [];
+
+            for (const target of targets) {
+                const manifestPath = getManifestPath(target);
+                let lastSync: string | null = null;
+                try {
+                    if (await fs.pathExists(manifestPath)) {
+                        const manifest = await fs.readJson(manifestPath);
+                        if (manifest.lastSync) lastSync = manifest.lastSync;
+                    }
+                } catch { /* ignore */ }
+
+                const changeSet = await calculateDiff(repoRoot, target);
+                const totalChanges = Object.values(changeSet).reduce(
+                    (sum: number, c: any) => sum + c.missing.length + c.outdated.length + c.drifted.length, 0,
+                ) as number;
+
+                results.push({ path: target, name: path.basename(target), lastSync, changes: changeSet as any, totalChanges });
+            }
+
+            // ── JSON output ─────────────────────────────────────────────────
+            if (json) {
+                console.log(JSON.stringify({ targets: results }, null, 2));
+                return;
+            }
+
+            // ── Table output ─────────────────────────────────────────────────
+            // eslint-disable-next-line @typescript-eslint/no-var-requires
+            const Table = require('cli-table3');
+
+            const table = new Table({
+                head: [
+                    kleur.bold('Target'),
+                    kleur.bold(kleur.green('+ New')),
+                    kleur.bold(kleur.yellow('↑ Update')),
+                    kleur.bold(kleur.red('! Drift')),
+                    kleur.bold('Last Sync'),
+                ],
+                style: { head: [], border: [] },
+            });
+
+            for (const r of results) {
+                const missing  = Object.values(r.changes).reduce((s: number, c: any) => s + c.missing.length,  0) as number;
+                const outdated = Object.values(r.changes).reduce((s: number, c: any) => s + c.outdated.length, 0) as number;
+                const drifted  = Object.values(r.changes).reduce((s: number, c: any) => s + c.drifted.length,  0) as number;
+
+                const lastSyncStr = r.lastSync
+                    ? kleur.gray(formatRelativeTime(new Date(r.lastSync).getTime()))
+                    : kleur.gray('never');
+
+                table.push([
+                    r.totalChanges > 0 ? kleur.bold(r.name) : r.name,
+                    missing  > 0 ? kleur.green(String(missing))  : kleur.gray('—'),
+                    outdated > 0 ? kleur.yellow(String(outdated)) : kleur.gray('—'),
+                    drifted  > 0 ? kleur.red(String(drifted))    : kleur.gray('—'),
+                    lastSyncStr,
+                ]);
+            }
+
+            console.log('\n' + table.toString());
+
+            const totalPending = results.reduce((s, r) => s + r.totalChanges, 0);
+            if (totalPending > 0) {
+                console.log(kleur.yellow(`\n  ⚠  ${totalPending} pending change${totalPending !== 1 ? 's' : ''} across ${results.filter(r => r.totalChanges > 0).length} environment${results.filter(r => r.totalChanges > 0).length !== 1 ? 's' : ''}`));
+                console.log(kleur.gray(`  Run ${kleur.cyan('jaggers-config sync')} to apply\n`));
+            } else {
+                console.log(kleur.green(`\n  ✓ All environments up-to-date\n`));
+            }
         });
 }
