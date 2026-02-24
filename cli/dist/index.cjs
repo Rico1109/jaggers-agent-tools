@@ -4061,7 +4061,7 @@ var require_prompt = __commonJS({
 var require_text = __commonJS({
   "node_modules/prompts/dist/elements/text.js"(exports2, module2) {
     "use strict";
-    function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) {
+    function asyncGeneratorStep(gen, resolve2, reject, _next, _throw, key, arg) {
       try {
         var info2 = gen[key](arg);
         var value = info2.value;
@@ -4070,7 +4070,7 @@ var require_text = __commonJS({
         return;
       }
       if (info2.done) {
-        resolve(value);
+        resolve2(value);
       } else {
         Promise.resolve(value).then(_next, _throw);
       }
@@ -4078,13 +4078,13 @@ var require_text = __commonJS({
     function _asyncToGenerator(fn) {
       return function() {
         var self = this, args = arguments;
-        return new Promise(function(resolve, reject) {
+        return new Promise(function(resolve2, reject) {
           var gen = fn.apply(self, args);
           function _next(value) {
-            asyncGeneratorStep(gen, resolve, reject, _next, _throw, "next", value);
+            asyncGeneratorStep(gen, resolve2, reject, _next, _throw, "next", value);
           }
           function _throw(err) {
-            asyncGeneratorStep(gen, resolve, reject, _next, _throw, "throw", err);
+            asyncGeneratorStep(gen, resolve2, reject, _next, _throw, "throw", err);
           }
           _next(void 0);
         });
@@ -4800,7 +4800,7 @@ var require_dateparts = __commonJS({
 var require_date = __commonJS({
   "node_modules/prompts/dist/elements/date.js"(exports2, module2) {
     "use strict";
-    function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) {
+    function asyncGeneratorStep(gen, resolve2, reject, _next, _throw, key, arg) {
       try {
         var info2 = gen[key](arg);
         var value = info2.value;
@@ -4809,7 +4809,7 @@ var require_date = __commonJS({
         return;
       }
       if (info2.done) {
-        resolve(value);
+        resolve2(value);
       } else {
         Promise.resolve(value).then(_next, _throw);
       }
@@ -4817,13 +4817,13 @@ var require_date = __commonJS({
     function _asyncToGenerator(fn) {
       return function() {
         var self = this, args = arguments;
-        return new Promise(function(resolve, reject) {
+        return new Promise(function(resolve2, reject) {
           var gen = fn.apply(self, args);
           function _next(value) {
-            asyncGeneratorStep(gen, resolve, reject, _next, _throw, "next", value);
+            asyncGeneratorStep(gen, resolve2, reject, _next, _throw, "next", value);
           }
           function _throw(err) {
-            asyncGeneratorStep(gen, resolve, reject, _next, _throw, "throw", err);
+            asyncGeneratorStep(gen, resolve2, reject, _next, _throw, "throw", err);
           }
           _next(void 0);
         });
@@ -5026,7 +5026,7 @@ ${i ? ` ` : figures.pointerSmall} ${color.red().italic(l)}`, ``);
 var require_number = __commonJS({
   "node_modules/prompts/dist/elements/number.js"(exports2, module2) {
     "use strict";
-    function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) {
+    function asyncGeneratorStep(gen, resolve2, reject, _next, _throw, key, arg) {
       try {
         var info2 = gen[key](arg);
         var value = info2.value;
@@ -5035,7 +5035,7 @@ var require_number = __commonJS({
         return;
       }
       if (info2.done) {
-        resolve(value);
+        resolve2(value);
       } else {
         Promise.resolve(value).then(_next, _throw);
       }
@@ -5043,13 +5043,13 @@ var require_number = __commonJS({
     function _asyncToGenerator(fn) {
       return function() {
         var self = this, args = arguments;
-        return new Promise(function(resolve, reject) {
+        return new Promise(function(resolve2, reject) {
           var gen = fn.apply(self, args);
           function _next(value) {
-            asyncGeneratorStep(gen, resolve, reject, _next, _throw, "next", value);
+            asyncGeneratorStep(gen, resolve2, reject, _next, _throw, "next", value);
           }
           function _throw(err) {
-            asyncGeneratorStep(gen, resolve, reject, _next, _throw, "throw", err);
+            asyncGeneratorStep(gen, resolve2, reject, _next, _throw, "throw", err);
           }
           _next(void 0);
         });
@@ -5472,7 +5472,7 @@ Instructions:
 var require_autocomplete = __commonJS({
   "node_modules/prompts/dist/elements/autocomplete.js"(exports2, module2) {
     "use strict";
-    function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) {
+    function asyncGeneratorStep(gen, resolve2, reject, _next, _throw, key, arg) {
       try {
         var info2 = gen[key](arg);
         var value = info2.value;
@@ -5481,7 +5481,7 @@ var require_autocomplete = __commonJS({
         return;
       }
       if (info2.done) {
-        resolve(value);
+        resolve2(value);
       } else {
         Promise.resolve(value).then(_next, _throw);
       }
@@ -5489,13 +5489,13 @@ var require_autocomplete = __commonJS({
     function _asyncToGenerator(fn) {
       return function() {
         var self = this, args = arguments;
-        return new Promise(function(resolve, reject) {
+        return new Promise(function(resolve2, reject) {
           var gen = fn.apply(self, args);
           function _next(value) {
-            asyncGeneratorStep(gen, resolve, reject, _next, _throw, "next", value);
+            asyncGeneratorStep(gen, resolve2, reject, _next, _throw, "next", value);
           }
           function _throw(err) {
-            asyncGeneratorStep(gen, resolve, reject, _next, _throw, "throw", err);
+            asyncGeneratorStep(gen, resolve2, reject, _next, _throw, "throw", err);
           }
           _next(void 0);
         });
@@ -6126,7 +6126,7 @@ var require_dist = __commonJS({
       for (var i = 0, arr2 = new Array(len); i < len; i++) arr2[i] = arr[i];
       return arr2;
     }
-    function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) {
+    function asyncGeneratorStep(gen, resolve2, reject, _next, _throw, key, arg) {
       try {
         var info2 = gen[key](arg);
         var value = info2.value;
@@ -6135,7 +6135,7 @@ var require_dist = __commonJS({
         return;
       }
       if (info2.done) {
-        resolve(value);
+        resolve2(value);
       } else {
         Promise.resolve(value).then(_next, _throw);
       }
@@ -6143,13 +6143,13 @@ var require_dist = __commonJS({
     function _asyncToGenerator(fn) {
       return function() {
         var self = this, args = arguments;
-        return new Promise(function(resolve, reject) {
+        return new Promise(function(resolve2, reject) {
           var gen = fn.apply(self, args);
           function _next(value) {
-            asyncGeneratorStep(gen, resolve, reject, _next, _throw, "next", value);
+            asyncGeneratorStep(gen, resolve2, reject, _next, _throw, "next", value);
           }
           function _throw(err) {
-            asyncGeneratorStep(gen, resolve, reject, _next, _throw, "throw", err);
+            asyncGeneratorStep(gen, resolve2, reject, _next, _throw, "throw", err);
           }
           _next(void 0);
         });
@@ -8431,8 +8431,8 @@ var require_universalify = __commonJS({
       return Object.defineProperty(function(...args) {
         if (typeof args[args.length - 1] === "function") fn.apply(this, args);
         else {
-          return new Promise((resolve, reject) => {
-            args.push((err, res) => err != null ? reject(err) : resolve(res));
+          return new Promise((resolve2, reject) => {
+            args.push((err, res) => err != null ? reject(err) : resolve2(res));
             fn.apply(this, args);
           });
         }
@@ -9287,18 +9287,18 @@ var require_fs = __commonJS({
       if (typeof callback === "function") {
         return fs14.exists(filename, callback);
       }
-      return new Promise((resolve) => {
-        return fs14.exists(filename, resolve);
+      return new Promise((resolve2) => {
+        return fs14.exists(filename, resolve2);
       });
     };
     exports2.read = function(fd, buffer, offset, length, position, callback) {
       if (typeof callback === "function") {
         return fs14.read(fd, buffer, offset, length, position, callback);
       }
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve2, reject) => {
         fs14.read(fd, buffer, offset, length, position, (err, bytesRead, buffer2) => {
           if (err) return reject(err);
-          resolve({ bytesRead, buffer: buffer2 });
+          resolve2({ bytesRead, buffer: buffer2 });
         });
       });
     };
@@ -9306,10 +9306,10 @@ var require_fs = __commonJS({
       if (typeof args[args.length - 1] === "function") {
         return fs14.write(fd, buffer, ...args);
       }
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve2, reject) => {
         fs14.write(fd, buffer, ...args, (err, bytesWritten, buffer2) => {
           if (err) return reject(err);
-          resolve({ bytesWritten, buffer: buffer2 });
+          resolve2({ bytesWritten, buffer: buffer2 });
         });
       });
     };
@@ -9317,10 +9317,10 @@ var require_fs = __commonJS({
       if (typeof args[args.length - 1] === "function") {
         return fs14.readv(fd, buffers, ...args);
       }
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve2, reject) => {
         fs14.readv(fd, buffers, ...args, (err, bytesRead, buffers2) => {
           if (err) return reject(err);
-          resolve({ bytesRead, buffers: buffers2 });
+          resolve2({ bytesRead, buffers: buffers2 });
         });
       });
     };
@@ -9328,10 +9328,10 @@ var require_fs = __commonJS({
       if (typeof args[args.length - 1] === "function") {
         return fs14.writev(fd, buffers, ...args);
       }
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve2, reject) => {
         fs14.writev(fd, buffers, ...args, (err, bytesWritten, buffers2) => {
           if (err) return reject(err);
-          resolve({ bytesWritten, buffers: buffers2 });
+          resolve2({ bytesWritten, buffers: buffers2 });
         });
       });
     };
@@ -10317,7 +10317,7 @@ var require_jsonfile = __commonJS({
       return obj;
     }
     var readFile = universalify.fromPromise(_readFile);
-    function readFileSync(file2, options = {}) {
+    function readFileSync2(file2, options = {}) {
       if (typeof options === "string") {
         options = { encoding: options };
       }
@@ -10349,7 +10349,7 @@ var require_jsonfile = __commonJS({
     }
     module2.exports = {
       readFile,
-      readFileSync,
+      readFileSync: readFileSync2,
       writeFile,
       writeFileSync: writeFileSync2
     };
@@ -10931,7 +10931,7 @@ var init_retryify_async = __esm({
               throw error49;
             const delay = Math.round(interval * Math.random());
             if (delay > 0) {
-              const delayPromise = new Promise((resolve) => setTimeout(resolve, delay));
+              const delayPromise = new Promise((resolve2) => setTimeout(resolve2, delay));
               return delayPromise.then(() => attempt.apply(void 0, args));
             } else {
               return attempt.apply(void 0, args);
@@ -14341,7 +14341,7 @@ var require_compile = __commonJS({
       const schOrFunc = root.refs[ref];
       if (schOrFunc)
         return schOrFunc;
-      let _sch = resolve.call(this, root, ref);
+      let _sch = resolve2.call(this, root, ref);
       if (_sch === void 0) {
         const schema = (_a2 = root.localRefs) === null || _a2 === void 0 ? void 0 : _a2[ref];
         const { schemaId } = this.opts;
@@ -14368,7 +14368,7 @@ var require_compile = __commonJS({
     function sameSchemaEnv(s1, s2) {
       return s1.schema === s2.schema && s1.root === s2.root && s1.baseId === s2.baseId;
     }
-    function resolve(root, ref) {
+    function resolve2(root, ref) {
       let sch;
       while (typeof (sch = this.refs[ref]) == "string")
         ref = sch;
@@ -14943,7 +14943,7 @@ var require_fast_uri = __commonJS({
       }
       return uri;
     }
-    function resolve(baseURI, relativeURI, options) {
+    function resolve2(baseURI, relativeURI, options) {
       const schemelessOptions = options ? Object.assign({ scheme: "null" }, options) : { scheme: "null" };
       const resolved = resolveComponent(parse4(baseURI, schemelessOptions), parse4(relativeURI, schemelessOptions), schemelessOptions, true);
       schemelessOptions.skipEscape = true;
@@ -15170,7 +15170,7 @@ var require_fast_uri = __commonJS({
     var fastUri = {
       SCHEMES,
       normalize,
-      resolve,
+      resolve: resolve2,
       resolveComponent,
       equal,
       serialize,
@@ -18421,31 +18421,31 @@ var require_semver = __commonJS({
     var parseOptions = require_parse_options();
     var { compareIdentifiers } = require_identifiers();
     var SemVer = class _SemVer {
-      constructor(version2, options) {
+      constructor(version3, options) {
         options = parseOptions(options);
-        if (version2 instanceof _SemVer) {
-          if (version2.loose === !!options.loose && version2.includePrerelease === !!options.includePrerelease) {
-            return version2;
+        if (version3 instanceof _SemVer) {
+          if (version3.loose === !!options.loose && version3.includePrerelease === !!options.includePrerelease) {
+            return version3;
           } else {
-            version2 = version2.version;
+            version3 = version3.version;
           }
-        } else if (typeof version2 !== "string") {
-          throw new TypeError(`Invalid version. Must be a string. Got type "${typeof version2}".`);
+        } else if (typeof version3 !== "string") {
+          throw new TypeError(`Invalid version. Must be a string. Got type "${typeof version3}".`);
         }
-        if (version2.length > MAX_LENGTH) {
+        if (version3.length > MAX_LENGTH) {
           throw new TypeError(
             `version is longer than ${MAX_LENGTH} characters`
           );
         }
-        debug("SemVer", version2, options);
+        debug("SemVer", version3, options);
         this.options = options;
         this.loose = !!options.loose;
         this.includePrerelease = !!options.includePrerelease;
-        const m = version2.trim().match(options.loose ? re[t.LOOSE] : re[t.FULL]);
+        const m = version3.trim().match(options.loose ? re[t.LOOSE] : re[t.FULL]);
         if (!m) {
-          throw new TypeError(`Invalid Version: ${version2}`);
+          throw new TypeError(`Invalid Version: ${version3}`);
         }
-        this.raw = version2;
+        this.raw = version3;
         this.major = +m[1];
         this.minor = +m[2];
         this.patch = +m[3];
@@ -18695,12 +18695,12 @@ var require_parse = __commonJS({
   "node_modules/semver/functions/parse.js"(exports2, module2) {
     "use strict";
     var SemVer = require_semver();
-    var parse4 = (version2, options, throwErrors = false) => {
-      if (version2 instanceof SemVer) {
-        return version2;
+    var parse4 = (version3, options, throwErrors = false) => {
+      if (version3 instanceof SemVer) {
+        return version3;
       }
       try {
-        return new SemVer(version2, options);
+        return new SemVer(version3, options);
       } catch (er) {
         if (!throwErrors) {
           return null;
@@ -18717,8 +18717,8 @@ var require_valid = __commonJS({
   "node_modules/semver/functions/valid.js"(exports2, module2) {
     "use strict";
     var parse4 = require_parse();
-    var valid = (version2, options) => {
-      const v = parse4(version2, options);
+    var valid = (version3, options) => {
+      const v = parse4(version3, options);
       return v ? v.version : null;
     };
     module2.exports = valid;
@@ -18730,8 +18730,8 @@ var require_clean = __commonJS({
   "node_modules/semver/functions/clean.js"(exports2, module2) {
     "use strict";
     var parse4 = require_parse();
-    var clean = (version2, options) => {
-      const s = parse4(version2.trim().replace(/^[=v]+/, ""), options);
+    var clean = (version3, options) => {
+      const s = parse4(version3.trim().replace(/^[=v]+/, ""), options);
       return s ? s.version : null;
     };
     module2.exports = clean;
@@ -18743,7 +18743,7 @@ var require_inc = __commonJS({
   "node_modules/semver/functions/inc.js"(exports2, module2) {
     "use strict";
     var SemVer = require_semver();
-    var inc = (version2, release, options, identifier, identifierBase) => {
+    var inc = (version3, release, options, identifier, identifierBase) => {
       if (typeof options === "string") {
         identifierBase = identifier;
         identifier = options;
@@ -18751,7 +18751,7 @@ var require_inc = __commonJS({
       }
       try {
         return new SemVer(
-          version2 instanceof SemVer ? version2.version : version2,
+          version3 instanceof SemVer ? version3.version : version3,
           options
         ).inc(release, identifier, identifierBase).version;
       } catch (er) {
@@ -18767,9 +18767,9 @@ var require_diff = __commonJS({
   "node_modules/semver/functions/diff.js"(exports2, module2) {
     "use strict";
     var parse4 = require_parse();
-    var diff = (version1, version2) => {
+    var diff = (version1, version22) => {
       const v1 = parse4(version1, null, true);
-      const v2 = parse4(version2, null, true);
+      const v2 = parse4(version22, null, true);
       const comparison = v1.compare(v2);
       if (comparison === 0) {
         return null;
@@ -18841,8 +18841,8 @@ var require_prerelease = __commonJS({
   "node_modules/semver/functions/prerelease.js"(exports2, module2) {
     "use strict";
     var parse4 = require_parse();
-    var prerelease = (version2, options) => {
-      const parsed = parse4(version2, options);
+    var prerelease = (version3, options) => {
+      const parsed = parse4(version3, options);
       return parsed && parsed.prerelease.length ? parsed.prerelease : null;
     };
     module2.exports = prerelease;
@@ -19030,24 +19030,24 @@ var require_coerce = __commonJS({
     var SemVer = require_semver();
     var parse4 = require_parse();
     var { safeRe: re, t } = require_re();
-    var coerce = (version2, options) => {
-      if (version2 instanceof SemVer) {
-        return version2;
+    var coerce = (version3, options) => {
+      if (version3 instanceof SemVer) {
+        return version3;
       }
-      if (typeof version2 === "number") {
-        version2 = String(version2);
+      if (typeof version3 === "number") {
+        version3 = String(version3);
       }
-      if (typeof version2 !== "string") {
+      if (typeof version3 !== "string") {
         return null;
       }
       options = options || {};
       let match = null;
       if (!options.rtl) {
-        match = version2.match(options.includePrerelease ? re[t.COERCEFULL] : re[t.COERCE]);
+        match = version3.match(options.includePrerelease ? re[t.COERCEFULL] : re[t.COERCE]);
       } else {
         const coerceRtlRegex = options.includePrerelease ? re[t.COERCERTLFULL] : re[t.COERCERTL];
         let next;
-        while ((next = coerceRtlRegex.exec(version2)) && (!match || match.index + match[0].length !== version2.length)) {
+        while ((next = coerceRtlRegex.exec(version3)) && (!match || match.index + match[0].length !== version3.length)) {
           if (!match || next.index + next[0].length !== match.index + match[0].length) {
             match = next;
           }
@@ -19231,19 +19231,19 @@ var require_range = __commonJS({
         });
       }
       // if ANY of the sets match ALL of its comparators, then pass
-      test(version2) {
-        if (!version2) {
+      test(version3) {
+        if (!version3) {
           return false;
         }
-        if (typeof version2 === "string") {
+        if (typeof version3 === "string") {
           try {
-            version2 = new SemVer(version2, this.options);
+            version3 = new SemVer(version3, this.options);
           } catch (er) {
             return false;
           }
         }
         for (let i = 0; i < this.set.length; i++) {
-          if (testSet(this.set[i], version2, this.options)) {
+          if (testSet(this.set[i], version3, this.options)) {
             return true;
           }
         }
@@ -19458,13 +19458,13 @@ var require_range = __commonJS({
       }
       return `${from} ${to}`.trim();
     };
-    var testSet = (set2, version2, options) => {
+    var testSet = (set2, version3, options) => {
       for (let i = 0; i < set2.length; i++) {
-        if (!set2[i].test(version2)) {
+        if (!set2[i].test(version3)) {
           return false;
         }
       }
-      if (version2.prerelease.length && !options.includePrerelease) {
+      if (version3.prerelease.length && !options.includePrerelease) {
         for (let i = 0; i < set2.length; i++) {
           debug(set2[i].semver);
           if (set2[i].semver === Comparator.ANY) {
@@ -19472,7 +19472,7 @@ var require_range = __commonJS({
           }
           if (set2[i].semver.prerelease.length > 0) {
             const allowed = set2[i].semver;
-            if (allowed.major === version2.major && allowed.minor === version2.minor && allowed.patch === version2.patch) {
+            if (allowed.major === version3.major && allowed.minor === version3.minor && allowed.patch === version3.patch) {
               return true;
             }
           }
@@ -19533,19 +19533,19 @@ var require_comparator = __commonJS({
       toString() {
         return this.value;
       }
-      test(version2) {
-        debug("Comparator.test", version2, this.options.loose);
-        if (this.semver === ANY || version2 === ANY) {
+      test(version3) {
+        debug("Comparator.test", version3, this.options.loose);
+        if (this.semver === ANY || version3 === ANY) {
           return true;
         }
-        if (typeof version2 === "string") {
+        if (typeof version3 === "string") {
           try {
-            version2 = new SemVer(version2, this.options);
+            version3 = new SemVer(version3, this.options);
           } catch (er) {
             return false;
           }
         }
-        return cmp(version2, this.operator, this.semver, this.options);
+        return cmp(version3, this.operator, this.semver, this.options);
       }
       intersects(comp, options) {
         if (!(comp instanceof _Comparator)) {
@@ -19602,13 +19602,13 @@ var require_satisfies = __commonJS({
   "node_modules/semver/functions/satisfies.js"(exports2, module2) {
     "use strict";
     var Range = require_range();
-    var satisfies = (version2, range, options) => {
+    var satisfies = (version3, range, options) => {
       try {
         range = new Range(range, options);
       } catch (er) {
         return false;
       }
-      return range.test(version2);
+      return range.test(version3);
     };
     module2.exports = satisfies;
   }
@@ -19770,8 +19770,8 @@ var require_outside = __commonJS({
     var lt = require_lt();
     var lte = require_lte();
     var gte = require_gte();
-    var outside = (version2, range, hilo, options) => {
-      version2 = new SemVer(version2, options);
+    var outside = (version3, range, hilo, options) => {
+      version3 = new SemVer(version3, options);
       range = new Range(range, options);
       let gtfn, ltefn, ltfn, comp, ecomp;
       switch (hilo) {
@@ -19792,7 +19792,7 @@ var require_outside = __commonJS({
         default:
           throw new TypeError('Must provide a hilo val of "<" or ">"');
       }
-      if (satisfies(version2, range, options)) {
+      if (satisfies(version3, range, options)) {
         return false;
       }
       for (let i = 0; i < range.set.length; ++i) {
@@ -19814,9 +19814,9 @@ var require_outside = __commonJS({
         if (high.operator === comp || high.operator === ecomp) {
           return false;
         }
-        if ((!low.operator || low.operator === comp) && ltefn(version2, low.semver)) {
+        if ((!low.operator || low.operator === comp) && ltefn(version3, low.semver)) {
           return false;
-        } else if (low.operator === ecomp && ltfn(version2, low.semver)) {
+        } else if (low.operator === ecomp && ltfn(version3, low.semver)) {
           return false;
         }
       }
@@ -19831,7 +19831,7 @@ var require_gtr = __commonJS({
   "node_modules/semver/ranges/gtr.js"(exports2, module2) {
     "use strict";
     var outside = require_outside();
-    var gtr = (version2, range, options) => outside(version2, range, ">", options);
+    var gtr = (version3, range, options) => outside(version3, range, ">", options);
     module2.exports = gtr;
   }
 });
@@ -19841,7 +19841,7 @@ var require_ltr = __commonJS({
   "node_modules/semver/ranges/ltr.js"(exports2, module2) {
     "use strict";
     var outside = require_outside();
-    var ltr = (version2, range, options) => outside(version2, range, "<", options);
+    var ltr = (version3, range, options) => outside(version3, range, "<", options);
     module2.exports = ltr;
   }
 });
@@ -19871,12 +19871,12 @@ var require_simplify = __commonJS({
       let first = null;
       let prev = null;
       const v = versions.sort((a, b) => compare(a, b, options));
-      for (const version2 of v) {
-        const included = satisfies(version2, range, options);
+      for (const version3 of v) {
+        const included = satisfies(version3, range, options);
         if (included) {
-          prev = version2;
+          prev = version3;
           if (!first) {
-            first = version2;
+            first = version3;
           }
         } else {
           if (prev) {
@@ -20556,20 +20556,20 @@ var init_source = __esm({
         let previousMigratedVersion = this._get(MIGRATION_KEY, "0.0.0");
         const newerVersions = Object.keys(migrations).filter((candidateVersion) => this._shouldPerformMigration(candidateVersion, previousMigratedVersion, versionToMigrate));
         let storeBackup = { ...this.store };
-        for (const version2 of newerVersions) {
+        for (const version3 of newerVersions) {
           try {
             if (beforeEachMigration) {
               beforeEachMigration(this, {
                 fromVersion: previousMigratedVersion,
-                toVersion: version2,
+                toVersion: version3,
                 finalVersion: versionToMigrate,
                 versions: newerVersions
               });
             }
-            const migration = migrations[version2];
+            const migration = migrations[version3];
             migration?.(this);
-            this._set(MIGRATION_KEY, version2);
-            previousMigratedVersion = version2;
+            this._set(MIGRATION_KEY, version3);
+            previousMigratedVersion = version3;
             storeBackup = { ...this.store };
           } catch (error49) {
             this.store = storeBackup;
@@ -20598,8 +20598,8 @@ var init_source = __esm({
         }
         return false;
       }
-      _isVersionInRangeFormat(version2) {
-        return import_semver.default.clean(version2) === null;
+      _isVersionInRangeFormat(version3) {
+        return import_semver.default.clean(version3) === null;
       }
       _shouldPerformMigration(candidateVersion, previousMigratedVersion, versionToMigrate) {
         if (this._isVersionInRangeFormat(candidateVersion)) {
@@ -20654,7 +20654,7 @@ async function getContext() {
   const candidates = getCandidatePaths();
   for (const c of candidates) {
     const exists = await import_fs_extra.default.pathExists(c.path);
-    const icon = exists ? "[X]" : "[ ]";
+    const icon = exists ? kleur_default.green("\u25CF") : kleur_default.gray("\u25CB");
     const desc = exists ? "Found" : "Not found (will create)";
     choices.push({
       title: `${icon} ${c.label} (${c.path})`,
@@ -20672,8 +20672,12 @@ async function getContext() {
     hint: "- Space to select. Return to submit",
     instructions: false
   });
-  if (!response.targets || response.targets.length === 0) {
-    console.log(kleur_default.gray("No targets selected. Exiting."));
+  if (response.targets === void 0) {
+    console.log(kleur_default.gray("\nCancelled."));
+    process.exit(130);
+  }
+  if (response.targets.length === 0) {
+    console.log(kleur_default.gray("No targets selected."));
     process.exit(0);
   }
   for (const target of response.targets) {
@@ -28857,7 +28861,7 @@ var require_main = __commonJS({
     var os6 = require("os");
     var crypto2 = require("crypto");
     var packageJson = require_package();
-    var version2 = packageJson.version;
+    var version3 = packageJson.version;
     var LINE = /(?:^|^)\s*(?:export\s+)?([\w.-]+)(?:\s*=\s*?|:\s+?)(\s*'(?:\\'|[^'])*'|\s*"(?:\\"|[^"])*"|\s*`(?:\\`|[^`])*`|[^#\r\n]+)?\s*(?:#.*)?(?:$|$)/mg;
     function parse4(src) {
       const obj = {};
@@ -28906,13 +28910,13 @@ var require_main = __commonJS({
       return DotenvModule.parse(decrypted);
     }
     function _warn(message) {
-      console.log(`[dotenv@${version2}][WARN] ${message}`);
+      console.log(`[dotenv@${version3}][WARN] ${message}`);
     }
     function _debug(message) {
-      console.log(`[dotenv@${version2}][DEBUG] ${message}`);
+      console.log(`[dotenv@${version3}][DEBUG] ${message}`);
     }
     function _log(message) {
-      console.log(`[dotenv@${version2}] ${message}`);
+      console.log(`[dotenv@${version3}] ${message}`);
     }
     function _dotenvKey(options) {
       if (options && options.DOTENV_KEY && options.DOTENV_KEY.length > 0) {
@@ -29138,6 +29142,10 @@ var require_main = __commonJS({
     module2.exports = DotenvModule;
   }
 });
+
+// src/index.ts
+var import_node_fs4 = require("fs");
+var import_node_path5 = require("path");
 
 // node_modules/commander/esm.mjs
 var import_index = __toESM(require_commander(), 1);
@@ -29451,10 +29459,10 @@ function _supportsColor(haveStream, { streamIsTTY, sniffFlags = true } = {}) {
     return 3;
   }
   if ("TERM_PROGRAM" in env) {
-    const version2 = Number.parseInt((env.TERM_PROGRAM_VERSION || "").split(".")[0], 10);
+    const version3 = Number.parseInt((env.TERM_PROGRAM_VERSION || "").split(".")[0], 10);
     switch (env.TERM_PROGRAM) {
       case "iTerm.app": {
-        return version2 >= 3 ? 3 : 2;
+        return version3 >= 3 ? 3 : 2;
       }
       case "Apple_Terminal": {
         return 2;
@@ -32574,7 +32582,7 @@ async function hashDirectory(dirPath) {
 async function getNewestMtime(targetPath) {
   if (!await import_fs_extra2.default.pathExists(targetPath)) return 0;
   const stats = await import_fs_extra2.default.stat(targetPath);
-  let maxTime = stats.mtimeMs;
+  let maxTime = 0;
   if (stats.isDirectory()) {
     const children = await import_fs_extra2.default.readdir(targetPath);
     for (const child of children) {
@@ -32848,6 +32856,7 @@ ${promptBody}
 }
 
 // src/utils/atomic-config.ts
+var import_node_crypto2 = require("crypto");
 var import_fs_extra5 = __toESM(require_lib2(), 1);
 var import_comment_json = __toESM(require_src3(), 1);
 var PROTECTED_KEYS = [
@@ -32905,7 +32914,7 @@ async function atomicWrite(filePath, data, options = {}) {
     backupOnSuccess = false,
     backupSuffix = ".bak"
   } = options;
-  const tempFilePath = `${filePath}.tmp.${Date.now()}.${Math.random().toString(36).substr(2, 9)}`;
+  const tempFilePath = `${filePath}.tmp.${(0, import_node_crypto2.randomUUID)()}`;
   try {
     let content;
     if (preserveComments) {
@@ -33063,7 +33072,7 @@ var ConfigAdapter = class {
     this.isQwen = normalizedRoot.includes(".qwen") || normalizedRoot.includes("/qwen");
     this.isCursor = normalizedRoot.includes("cursor");
     this.isAntigravity = normalizedRoot.includes("antigravity");
-    this.targetFormat = this.isCursor ? "cursor" : this.isAntigravity ? "antigravity" : this.isClaude ? "claude" : "claude";
+    this.targetFormat = this.isCursor ? "cursor" : this.isAntigravity ? "antigravity" : this.isClaude ? "claude" : this.isGemini ? "gemini" : this.isQwen ? "qwen" : "claude";
     this.hooksDir = import_path7.default.join(this.systemRoot, "hooks");
   }
   adaptMcpConfig(canonicalConfig) {
@@ -33410,18 +33419,16 @@ function parseMcpListOutput(output, pattern) {
 }
 function resolveEnvVar(value) {
   if (typeof value !== "string") return value;
-  const envMatch = value.match(/\$\{([A-Z0-9_]+)\}/i);
-  if (envMatch) {
-    const envName = envMatch[1];
-    const envValue = process.env[envName];
+  return value.replace(/\$\{([A-Z0-9_]+)\}/g, (_match, envName) => {
+    const upperName = envName.toUpperCase();
+    const envValue = process.env[upperName];
     if (envValue) {
       return envValue;
     } else {
-      console.warn(kleur_default.yellow(`  \u26A0\uFE0F  Environment variable ${envName} is not set in ${getEnvFilePath()}`));
+      console.warn(kleur_default.yellow(`  \u26A0\uFE0F  Environment variable ${upperName} is not set in ${getEnvFilePath()}`));
       return "";
     }
-  }
-  return value;
+  });
 }
 function detectAgent(systemRoot) {
   const normalizedRoot = systemRoot.replace(/\\/g, "/").toLowerCase();
@@ -33466,7 +33473,7 @@ function executeCommand(agent, args, dryRun = false) {
     return { success: true, dryRun: true };
   }
   try {
-    (0, import_child_process.execSync)(command, { stdio: "pipe" });
+    (0, import_child_process.execSync)(command, { stdio: "pipe", timeout: 1e4 });
     console.log(kleur_default.green(`  \u2713 ${args.slice(2).join(" ")}`));
     return { success: true };
   } catch (error49) {
@@ -33550,14 +33557,15 @@ async function syncMcpServersWithCli(agent, mcpConfig, dryRun = false, prune = f
   }
   const missingEnvVars = checkRequiredEnvVars();
   if (missingEnvVars.length > 0) {
-    handleMissingEnvVars(missingEnvVars);
+    const shouldProceed = handleMissingEnvVars(missingEnvVars);
+    if (!shouldProceed) return;
   }
   let successCount = 0;
   for (const [name, server] of toAdd) {
     const cmd = buildAddCommand(agent, name, server);
     if (cmd) {
       const result = executeCommand(agent, cmd, dryRun);
-      if (result.success) {
+      if (result.success && !result.skipped) {
         successCount++;
         console.log(kleur_default.green(`  + ${name}`));
       }
@@ -33724,7 +33732,6 @@ async function executeSync(repoRoot, systemRoot, changeSet, mode, actionType, is
           const agent2 = detectAgent(systemRoot);
           if (agent2) {
             console.log(kleur_default.gray(`  (Skipped: ${agent2} uses ${agent2} mcp CLI for MCP servers)`));
-            count++;
             continue;
           }
           if (!isDryRun && await import_fs_extra9.default.pathExists(dest)) {
@@ -33840,8 +33847,11 @@ async function executeSync(repoRoot, systemRoot, changeSet, mode, actionType, is
     console.error(kleur_default.red(`
 Sync failed, rolling back ${backups.length} changes...`));
     for (const backup of backups) {
-      await restoreBackup(backup);
-      await cleanupBackup(backup);
+      try {
+        await restoreBackup(backup);
+      } finally {
+        await cleanupBackup(backup);
+      }
     }
     throw error49;
   }
@@ -33895,8 +33905,7 @@ function createSyncCommand() {
     const actionType = backport ? "backport" : "sync";
     const repoRoot = await findRepoRoot();
     const ctx = await getContext();
-    const ctxSpinner = ora("Detecting environments\u2026").start();
-    ctxSpinner.succeed("Config loaded");
+    ora(`${ctx.targets.length} target(s) selected`).succeed();
     const { targets, syncMode, config: config3 } = ctx;
     const allChanges = [];
     let totalCount = 0;
@@ -33952,7 +33961,7 @@ function createSyncCommand() {
     for (const { target, changeSet, skippedDrifted } of allChanges) {
       console.log(kleur_default.bold(`
 \u{1F4C2} Target: ${import_path12.default.basename(target)}`));
-      const syncSpinner = ora("Syncing\u2026").start();
+      const syncSpinner = ora(`Applying changes to ${import_path12.default.basename(target)}\u2026`).start();
       const count = await executeSync(repoRoot, target, changeSet, syncMode, actionType, dryRun);
       syncSpinner.succeed(`Synced ${count} items`);
       totalCount += count;
@@ -35554,10 +35563,10 @@ var nanoid = /^[a-zA-Z0-9_-]{21}$/;
 var duration = /^P(?:(\d+W)|(?!.*W)(?=\d|T\d)(\d+Y)?(\d+M)?(\d+D)?(T(?=\d)(\d+H)?(\d+M)?(\d+([.,]\d+)?S)?)?)$/;
 var extendedDuration = /^[-+]?P(?!$)(?:(?:[-+]?\d+Y)|(?:[-+]?\d+[.,]\d+Y$))?(?:(?:[-+]?\d+M)|(?:[-+]?\d+[.,]\d+M$))?(?:(?:[-+]?\d+W)|(?:[-+]?\d+[.,]\d+W$))?(?:(?:[-+]?\d+D)|(?:[-+]?\d+[.,]\d+D$))?(?:T(?=[\d+-])(?:(?:[-+]?\d+H)|(?:[-+]?\d+[.,]\d+H$))?(?:(?:[-+]?\d+M)|(?:[-+]?\d+[.,]\d+M$))?(?:[-+]?\d+(?:[.,]\d+)?S)?)??$/;
 var guid = /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$/;
-var uuid = (version2) => {
-  if (!version2)
+var uuid = (version3) => {
+  if (!version3)
     return /^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/;
-  return new RegExp(`^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-${version2}[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$`);
+  return new RegExp(`^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-${version3}[0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12})$`);
 };
 var uuid4 = /* @__PURE__ */ uuid(4);
 var uuid6 = /* @__PURE__ */ uuid(6);
@@ -47713,10 +47722,10 @@ function fromJSONSchema(schema, params) {
   if (typeof schema === "boolean") {
     return schema ? z.any() : z.never();
   }
-  const version2 = detectVersion(schema, params?.defaultTarget);
+  const version3 = detectVersion(schema, params?.defaultTarget);
   const defs = schema.$defs || schema.definitions || {};
   const ctx = {
-    version: version2,
+    version: version3,
     defs,
     refs: /* @__PURE__ */ new Map(),
     processing: /* @__PURE__ */ new Set(),
@@ -47789,7 +47798,7 @@ var ManifestItemSchema = external_exports.object({
 var ManifestSchema = external_exports.object({
   version: external_exports.string().optional().default("1"),
   lastSync: external_exports.string(),
-  items: external_exports.record(external_exports.string(), ManifestItemSchema).optional().default({})
+  items: external_exports.number().optional().default(0)
 });
 
 // src/core/manifest.ts
@@ -47814,7 +47823,7 @@ function formatRelativeTime(timestamp) {
 }
 function createStatusCommand() {
   return new Command("status").description("Show diff between repo and target environments (read-only)").action(async () => {
-    const loadingSpinner = ora("Loading status\u2026").start();
+    const loadingSpinner = ora("Checking environments\u2026").start();
     const repoRoot = await findRepoRoot();
     const ctx = await getContext();
     const { targets } = ctx;
@@ -47827,7 +47836,7 @@ function createStatusCommand() {
         if (await import_fs_extra11.default.pathExists(manifestPath)) {
           const manifest = await import_fs_extra11.default.readJson(manifestPath);
           if (manifest.lastSync) {
-            console.log(kleur_default.gray(`  Last synced: ${formatRelativeTime(manifest.lastSync)}`));
+            console.log(kleur_default.gray(`  Last synced: ${formatRelativeTime(new Date(manifest.lastSync).getTime())}`));
           }
           const itemCounts = [];
           if (manifest.skills) itemCounts.push(`${manifest.skills} skills`);
@@ -47865,13 +47874,6 @@ function createStatusCommand() {
   \u26A0 Pending changes: ${totalChanges}`));
       }
     }
-    const anyChanges = targets.some(async (target) => {
-      const repoRoot2 = await findRepoRoot();
-      const changeSet = await calculateDiff(repoRoot2, target);
-      return Object.values(changeSet).some(
-        (cat) => cat.missing.length > 0 || cat.outdated.length > 0 || cat.drifted.length > 0
-      );
-    });
     console.log(kleur_default.gray("\n\u{1F4A1} Run `jaggers-config sync` to apply changes\n"));
   });
 }
@@ -47923,8 +47925,13 @@ function createAddOptionalCommand() {
 }
 
 // src/index.ts
+var version2 = "0.0.0";
+try {
+  version2 = JSON.parse((0, import_node_fs4.readFileSync)((0, import_node_path5.resolve)(__dirname, "../package.json"), "utf8")).version;
+} catch {
+}
 var program2 = new Command();
-program2.name("jaggers-config").description("Sync agent tools (skills, hooks, config, MCP servers) across AI environments").version("1.2.0");
+program2.name("jaggers-config").description("Sync agent tools (skills, hooks, config, MCP servers) across AI environments").version(version2);
 program2.exitOverride((err) => {
   if (err.code === "commander.unknownCommand") {
     console.error(kleur_default.red(`
@@ -47956,5 +47963,12 @@ process.on("unhandledRejection", (reason) => {
 `));
   process.exit(1);
 });
+var isHelpOrVersion = process.argv.some((a) => a === "--help" || a === "-h" || a === "--version" || a === "-V");
+if (!isHelpOrVersion) {
+  console.log(kleur_default.bold(`
+  jaggers-config`) + kleur_default.dim(` v${version2}`));
+  console.log(kleur_default.dim(`  Sync agent tools across AI environments
+`));
+}
 program2.parseAsync(process.argv);
 //# sourceMappingURL=index.cjs.map
