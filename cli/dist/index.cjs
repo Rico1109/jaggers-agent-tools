@@ -23137,6 +23137,7 @@ var init_source = __esm({
 // src/core/context.ts
 var context_exports = {};
 __export(context_exports, {
+  getCandidatePaths: () => getCandidatePaths,
   getContext: () => getContext,
   resetContext: () => resetContext
 });
@@ -52027,8 +52028,15 @@ function createStatusCommand() {
   return new Command("status").description("Show diff between repo and target environments (read-only)").option("--json", "Output machine-readable JSON", false).action(async (opts) => {
     const { json: json2 } = opts;
     const repoRoot = await findRepoRoot();
-    const ctx = await getContext();
-    const { targets } = ctx;
+    const candidates = getCandidatePaths();
+    const targets = [];
+    for (const c of candidates) {
+      if (await import_fs_extra11.default.pathExists(c.path)) targets.push(c.path);
+    }
+    if (targets.length === 0) {
+      console.log(kleur_default.yellow("\n  No agent environments found (~/.claude, ~/.gemini, ~/.qwen)\n"));
+      return;
+    }
     const results = [];
     for (const target of targets) {
       const manifestPath = getManifestPath(target);
