@@ -6155,7 +6155,7 @@ var require_dist = __commonJS({
         });
       };
     }
-    var prompts3 = require_prompts();
+    var prompts4 = require_prompts();
     var passOn = ["suggest", "format", "onState", "validate", "onRender", "type"];
     var noop = () => {
     };
@@ -6206,7 +6206,7 @@ var require_dist = __commonJS({
             var _question2 = question;
             name = _question2.name;
             type = _question2.type;
-            if (prompts3[type] === void 0) {
+            if (prompts4[type] === void 0) {
               throw new Error(`prompt type (${type}) is not defined`);
             }
             if (override2[question.name] !== void 0) {
@@ -6217,7 +6217,7 @@ var require_dist = __commonJS({
               }
             }
             try {
-              answer = prompt._injected ? getInjectedAnswer(prompt._injected, question.initial) : yield prompts3[type](question);
+              answer = prompt._injected ? getInjectedAnswer(prompt._injected, question.initial) : yield prompts4[type](question);
               answers[name] = answer = yield getFormattedAnswer(question, answer, true);
               quit = yield onSubmit(question, answer, answers);
             } catch (err) {
@@ -6249,7 +6249,7 @@ var require_dist = __commonJS({
     }
     module2.exports = Object.assign(prompt, {
       prompt,
-      prompts: prompts3,
+      prompts: prompts4,
       inject,
       override
     });
@@ -8336,7 +8336,7 @@ var require_prompts2 = __commonJS({
 var require_lib = __commonJS({
   "node_modules/prompts/lib/index.js"(exports2, module2) {
     "use strict";
-    var prompts3 = require_prompts2();
+    var prompts4 = require_prompts2();
     var passOn = ["suggest", "format", "onState", "validate", "onRender", "type"];
     var noop = () => {
     };
@@ -8368,7 +8368,7 @@ var require_lib = __commonJS({
           throw new Error("prompt message is required");
         }
         ({ name, type } = question);
-        if (prompts3[type] === void 0) {
+        if (prompts4[type] === void 0) {
           throw new Error(`prompt type (${type}) is not defined`);
         }
         if (override2[question.name] !== void 0) {
@@ -8379,7 +8379,7 @@ var require_lib = __commonJS({
           }
         }
         try {
-          answer = prompt._injected ? getInjectedAnswer(prompt._injected, question.initial) : await prompts3[type](question);
+          answer = prompt._injected ? getInjectedAnswer(prompt._injected, question.initial) : await prompts4[type](question);
           answers[name] = answer = await getFormattedAnswer(question, answer, true);
           quit = await onSubmit(question, answer, answers);
         } catch (err) {
@@ -8402,7 +8402,7 @@ var require_lib = __commonJS({
     function override(answers) {
       prompt._override = Object.assign({}, answers);
     }
-    module2.exports = Object.assign(prompt, { prompt, prompts: prompts3, inject, override });
+    module2.exports = Object.assign(prompt, { prompt, prompts: prompts4, inject, override });
   }
 });
 
@@ -37751,8 +37751,8 @@ async function promptOptionalServers(repoRoot) {
   if (servers.length === 0) {
     return false;
   }
-  const prompts3 = await Promise.resolve().then(() => __toESM(require_prompts3(), 1));
-  const { selected } = await prompts3.default({
+  const prompts4 = await Promise.resolve().then(() => __toESM(require_prompts3(), 1));
+  const { selected } = await prompts4.default({
     type: "multiselect",
     name: "selected",
     message: "Optional MCP servers available \u2014 select to install (space to toggle, enter to confirm):",
@@ -38193,6 +38193,7 @@ function createSyncCommand() {
 
 // src/commands/status.ts
 init_kleur();
+var import_prompts3 = __toESM(require_prompts3(), 1);
 init_context();
 
 // src/core/manifest.ts
@@ -52013,6 +52014,7 @@ function getManifestPath(projectDir) {
 // src/commands/status.ts
 var import_fs_extra11 = __toESM(require_lib2(), 1);
 var import_path14 = __toESM(require("path"), 1);
+init_source();
 function formatRelativeTime(timestamp) {
   const now = Date.now();
   const diff = now - timestamp;
@@ -52025,7 +52027,7 @@ function formatRelativeTime(timestamp) {
   return `${days} day${days > 1 ? "s" : ""} ago`;
 }
 function createStatusCommand() {
-  return new Command("status").description("Show diff between repo and target environments (read-only)").option("--json", "Output machine-readable JSON", false).action(async (opts) => {
+  return new Command("status").description("Show status and optionally sync target environments").option("--json", "Output machine-readable JSON", false).action(async (opts) => {
     const { json: json2 } = opts;
     const repoRoot = await findRepoRoot();
     const candidates = getCandidatePaths();
@@ -52085,16 +52087,37 @@ function createStatusCommand() {
     }
     console.log("\n" + table.toString());
     const totalPending = results.reduce((s, r) => s + r.totalChanges, 0);
-    if (totalPending > 0) {
-      console.log(kleur_default.yellow(`
-  \u26A0  ${totalPending} pending change${totalPending !== 1 ? "s" : ""} across ${results.filter((r) => r.totalChanges > 0).length} environment${results.filter((r) => r.totalChanges > 0).length !== 1 ? "s" : ""}`));
-      console.log(kleur_default.gray(`  Run ${kleur_default.cyan("jaggers-config sync")} to apply
-`));
-    } else {
-      console.log(kleur_default.green(`
-  \u2713 All environments up-to-date
-`));
+    if (totalPending === 0) {
+      console.log(kleur_default.green("\n  \u2713 All environments up-to-date\n"));
+      return;
     }
+    const pending = results.filter((r) => r.totalChanges > 0);
+    console.log(kleur_default.yellow(`
+  \u26A0  ${totalPending} pending change${totalPending !== 1 ? "s" : ""} across ${pending.length} environment${pending.length !== 1 ? "s" : ""}
+`));
+    const { proceed } = await (0, import_prompts3.default)({
+      type: "confirm",
+      name: "proceed",
+      message: "Apply sync now?",
+      initial: true
+    });
+    if (!proceed) {
+      console.log(kleur_default.gray("  Skipped. Run jaggers-config sync anytime to apply.\n"));
+      return;
+    }
+    const store2 = new Conf({ projectName: "jaggers-config-manager" });
+    const syncMode = store2.get("syncMode") || "copy";
+    let totalSynced = 0;
+    for (const r of pending) {
+      console.log(kleur_default.bold(`
+  \u2192 ${r.name}`));
+      const count = await executeSync(repoRoot, r.path, r.changes, syncMode, "sync", false);
+      totalSynced += count;
+      console.log(kleur_default.green(`  \u2713 ${count} item${count !== 1 ? "s" : ""} synced`));
+    }
+    console.log(kleur_default.bold().green(`
+\u2713 Done \u2014 ${totalSynced} item${totalSynced !== 1 ? "s" : ""} synced
+`));
   });
 }
 
