@@ -34786,6 +34786,74 @@ var {
 // src/index.ts
 init_kleur();
 
+// src/utils/banner.ts
+init_kleur();
+var ART_XTRM = [
+  " \u2588\u2588\u2557  \u2588\u2588\u2557 \u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557 \u2588\u2588\u2588\u2588\u2588\u2588\u2557  \u2588\u2588\u2588\u2557   \u2588\u2588\u2588\u2557",
+  " \u255A\u2588\u2588\u2557\u2588\u2588\u2554\u255D \u255A\u2550\u2550\u2588\u2588\u2554\u2550\u2550\u255D \u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557 \u2588\u2588\u2588\u2588\u2557 \u2588\u2588\u2588\u2588\u2551",
+  "  \u255A\u2588\u2588\u2588\u2554\u255D     \u2588\u2588\u2551    \u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255D \u2588\u2588\u2554\u2588\u2588\u2588\u2588\u2554\u2588\u2588\u2551",
+  "  \u2588\u2588\u2554\u2588\u2588\u2557     \u2588\u2588\u2551    \u2588\u2588\u2554\u2550\u2550\u2588\u2588\u2557 \u2588\u2588\u2551\u255A\u2588\u2588\u2554\u255D\u2588\u2588\u2551",
+  " \u2588\u2588\u2554\u255D \u2588\u2588\u2557    \u2588\u2588\u2551    \u2588\u2588\u2551  \u2588\u2588\u2551 \u2588\u2588\u2551 \u255A\u2550\u255D \u2588\u2588\u2551",
+  " \u255A\u2550\u255D  \u255A\u2550\u255D    \u255A\u2550\u255D    \u255A\u2550\u255D  \u255A\u2550\u255D \u255A\u2550\u255D     \u255A\u2550\u255D"
+];
+var ART_TOOLS = [
+  " \u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557  \u2588\u2588\u2588\u2588\u2588\u2588\u2557   \u2588\u2588\u2588\u2588\u2588\u2588\u2557  \u2588\u2588\u2557      \u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557",
+  " \u255A\u2550\u2550\u2588\u2588\u2554\u2550\u2550\u255D \u2588\u2588\u2554\u2550\u2550\u2550\u2588\u2588\u2557 \u2588\u2588\u2554\u2550\u2550\u2550\u2588\u2588\u2557 \u2588\u2588\u2551      \u2588\u2588\u2554\u2550\u2550\u2550\u2550\u255D",
+  "    \u2588\u2588\u2551    \u2588\u2588\u2551   \u2588\u2588\u2551 \u2588\u2588\u2551   \u2588\u2588\u2551 \u2588\u2588\u2551      \u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557",
+  "    \u2588\u2588\u2551    \u2588\u2588\u2551   \u2588\u2588\u2551 \u2588\u2588\u2551   \u2588\u2588\u2551 \u2588\u2588\u2551      \u255A\u2550\u2550\u2550\u2550\u2588\u2588\u2551",
+  "    \u2588\u2588\u2551    \u255A\u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255D \u255A\u2588\u2588\u2588\u2588\u2588\u2588\u2554\u255D \u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2557 \u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2551",
+  "    \u255A\u2550\u255D     \u255A\u2550\u2550\u2550\u2550\u2550\u255D   \u255A\u2550\u2550\u2550\u2550\u2550\u255D  \u255A\u2550\u2550\u2550\u2550\u2550\u2550\u255D \u255A\u2550\u2550\u2550\u2550\u2550\u2550\u255D"
+];
+var GRADIENT = [51, 51, 45, 45, 39, 33, 33, 27, 27, 21, 21, 17];
+function ansi256(code, text) {
+  return `\x1B[38;5;${code}m${text}\x1B[0m`;
+}
+function applyGradient(lines, offset = 0) {
+  return lines.map((line, i) => ansi256(GRADIENT[(i + offset) % GRADIENT.length], line)).join("\n");
+}
+function detectTier() {
+  if (!process.stdout.isTTY) return 0;
+  const cols = process.stdout.columns ?? 0;
+  const term = (process.env.TERM ?? "").toLowerCase();
+  if (term === "dumb" || cols < 60) return 1;
+  if (process.env.NO_COLOR !== void 0) return 1;
+  const colorterm = (process.env.COLORTERM ?? "").toLowerCase();
+  const has256 = term.includes("256color") || colorterm === "truecolor" || colorterm === "24bit" || term.startsWith("xterm") || term.startsWith("screen");
+  if (!has256 || cols < 80) return 2;
+  return 3;
+}
+function renderBanner(version3) {
+  const isHelpOrVersion = process.argv.some(
+    (a) => a === "--help" || a === "-h" || a === "--version" || a === "-V"
+  );
+  if (isHelpOrVersion) return;
+  const tier = detectTier();
+  if (tier === 0) {
+    return;
+  }
+  if (tier === 1) {
+    console.log(kleur_default.bold(`
+  jaggers-config`) + kleur_default.dim(` v${version3}`));
+    console.log(kleur_default.dim(`  Sync agent tools across AI environments
+`));
+    return;
+  }
+  if (tier === 2) {
+    const bar = kleur_default.cyan("\u2500".repeat(50));
+    console.log(`
+  ${bar}`);
+    console.log(`  ${kleur_default.bold().cyan("jaggers-config")} ${kleur_default.dim(`v${version3}`)}`);
+    console.log(`  ${kleur_default.dim("Sync agent tools across AI environments")}`);
+    console.log(`  ${bar}
+`);
+    return;
+  }
+  const art = applyGradient(ART_XTRM, 0) + "\n\n" + applyGradient(ART_TOOLS, 6);
+  const versionLine = `  ${kleur_default.dim(`v${version3}`)}  ${kleur_default.dim("\xB7")}  ${kleur_default.dim("Sync agent tools across AI environments")}`;
+  console.log("\n" + art);
+  console.log("\n" + versionLine + "\n");
+}
+
 // src/commands/sync.ts
 init_kleur();
 var import_prompts2 = __toESM(require_prompts3(), 1);
@@ -52213,12 +52281,6 @@ process.on("unhandledRejection", (reason) => {
 `));
   process.exit(1);
 });
-var isHelpOrVersion = process.argv.some((a) => a === "--help" || a === "-h" || a === "--version" || a === "-V");
-if (!isHelpOrVersion) {
-  console.log(kleur_default.bold(`
-  jaggers-config`) + kleur_default.dim(` v${version2}`));
-  console.log(kleur_default.dim(`  Sync agent tools across AI environments
-`));
-}
+renderBanner(version2);
 program2.parseAsync(process.argv);
 //# sourceMappingURL=index.cjs.map
