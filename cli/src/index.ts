@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { Command } from 'commander';
 import kleur from 'kleur';
+import { renderBanner } from './utils/banner.js';
 
 // __dirname is available in CJS output (tsup target: cjs)
 declare const __dirname: string;
@@ -57,11 +58,6 @@ process.on('unhandledRejection', (reason) => {
     process.exit(1);
 });
 
-// Show startup banner unless --help or --version flag is present
-const isHelpOrVersion = process.argv.some(a => a === '--help' || a === '-h' || a === '--version' || a === '-V');
-if (!isHelpOrVersion) {
-    console.log(kleur.bold(`\n  jaggers-config`) + kleur.dim(` v${version}`));
-    console.log(kleur.dim(`  Sync agent tools across AI environments\n`));
-}
+renderBanner(version);
 
 program.parseAsync(process.argv);
