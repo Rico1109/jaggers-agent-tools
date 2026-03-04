@@ -1,142 +1,182 @@
 import { Command } from 'commander';
 import kleur from 'kleur';
-import ora from 'ora';
-import { execSync } from 'child_process';
-import { findRepoRoot } from '../utils/repo-root.js';
+// @ts-ignore
+import prompts from 'prompts';
+import { Listr } from 'listr2';
 import { getContext } from '../core/context.js';
-import { runPreflight } from '../core/preflight.js';
-import { interactivePlan } from '../core/interactive-plan.js';
+import { calculateDiff, PruneModeReadError } from '../core/diff.js';
 import { executeSync } from '../core/sync-executor.js';
+import { findRepoRoot } from '../utils/repo-root.js';
+import { t, sym } from '../utils/theme.js';
 import path from 'path';
+
+interface TargetChanges {
+    target: string;
+    changeSet: any;
+    totalChanges: number;
+    skippedDrifted: string[];
+    error?: string;
+}
+
+interface DiffCtx {
+    allChanges: TargetChanges[];
+}
+
+function renderPlanTable(allChanges: TargetChanges[]): void {
+    // Dynamic import handled at call site — Table is CJS so require works
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const Table = require('cli-table3');
+
+    const table = new Table({
+        head: [
+            t.bold('Target'),
+            t.bold(kleur.green('+ New')),
+            t.bold(kleur.yellow('↑ Update')),
+            t.bold(kleur.red('! Drift')),
+            t.bold('Total'),
+        ],
+        style: { head: [], border: [] },
+    });
+
+    for (const { target, changeSet, totalChanges } of allChanges) {
+        const missing  = Object.values(changeSet).reduce((s: number, c: any) => s + c.missing.length,  0) as number;
+        const outdated = Object.values(changeSet).reduce((s: number, c: any) => s + c.outdated.length, 0) as number;
+        const drifted  = Object.values(changeSet).reduce((s: number, c: any) => s + c.drifted.length,  0) as number;
+
+        table.push([
+            path.basename(target),
+            missing  > 0 ? kleur.green(String(missing))  : t.muted('—'),
+            outdated > 0 ? kleur.yellow(String(outdated)) : t.muted('—'),
+            drifted  > 0 ? kleur.red(String(drifted))    : t.muted('—'),
+            t.bold(String(totalChanges)),
+        ]);
+    }
+
+    console.log('\n' + table.toString() + '\n');
+}
+
+async function renderSummaryCard(
+    allChanges: TargetChanges[],
+    totalCount: number,
+    allSkipped: string[],
+    isDryRun: boolean,
+): Promise<void> {
+    const boxen = (await import('boxen')).default;
+
+    const hasDrift = allSkipped.length > 0;
+    const lines = [
+        hasDrift ? t.boldGreen('  ✓ Sync complete') + t.warning('  (with skipped drift)') : t.boldGreen('  ✓ Sync complete'),
+        '',
+        `  ${t.muted('Targets')}   ${allChanges.length} environment${allChanges.length !== 1 ? 's' : ''}`,
+        `  ${t.muted('Synced')}    ${totalCount} item${totalCount !== 1 ? 's' : ''}`,
+        ...(hasDrift ? [
+            `  ${t.muted('Skipped')}   ${kleur.yellow(String(allSkipped.length))} drifted (local changes preserved)`,
+            `  ${t.muted('Hint')}      run ${t.accent('jaggers-config sync --backport')} to push them back`,
+        ] : []),
+        ...(isDryRun ? ['', t.accent('  Dry run — no changes written')] : []),
+    ];
+
+    console.log('\n' + boxen(lines.join('\n'), {
+        padding: { top: 1, bottom: 1, left: 1, right: 3 },
+        borderStyle: 'round',
+        borderColor: hasDrift ? 'yellow' : 'green',
+    }) + '\n');
+}
 
 export function createSyncCommand(): Command {
     return new Command('sync')
-        .description('Sync skills, hooks, config, and MCP servers to all agent environments')
-        .option('--dry-run', 'Preview the plan without making any changes', false)
-        .option('-y, --yes', 'Skip interactive plan, apply all defaults', false)
-        .option('--prune', 'Also remove items not present in the canonical repository', false)
-        .option('--backport', 'Reverse direction: copy local edits back into the repository', false)
+        .description('Sync agent tools (skills, hooks, config) to target environments')
+        .option('--dry-run', 'Preview changes without making any modifications', false)
+        .option('-y, --yes',  'Skip confirmation prompts', false)
+        .option('--prune',    'Remove items not in the canonical repository', false)
+        .option('--backport', 'Backport drifted local changes back to the repository', false)
         .action(async (opts) => {
             const { dryRun, yes, prune, backport } = opts;
-            const actionType: 'sync' | 'backport' = backport ? 'backport' : 'sync';
+            const actionType = backport ? 'backport' : 'sync';
+
             const repoRoot = await findRepoRoot();
+            const ctx = await getContext();
+            const { targets, syncMode } = ctx;
 
-            // ── Phase 1: Preflight (all parallel) ──────────────────────────
-            const spinner = ora('Checking environments…').start();
-            let plan;
-            try {
-                if (!yes && !dryRun) {
-                    spinner.stop();
-                    const ctx = await getContext();
-                    spinner.start('Running preflight checks…');
-                    plan = await runPreflight(repoRoot, prune);
-                    // Filter to user-selected targets only
-                    plan = {
-                        ...plan,
-                        targets: plan.targets.filter(t => ctx.targets.includes(t.target)),
-                    };
-                } else {
-                    plan = await runPreflight(repoRoot, prune);
-                }
+            // ── Phase 1: Diff (concurrent via listr2) ──────────────────────
+            const diffTasks = new Listr<DiffCtx>(
+                targets.map(target => ({
+                    title: path.basename(target),
+                    task: async (listCtx, task) => {
+                        try {
+                            const changeSet = await calculateDiff(repoRoot, target, prune);
+                            const totalChanges = Object.values(changeSet).reduce(
+                                (sum, c: any) => sum + c.missing.length + c.outdated.length + c.drifted.length, 0,
+                            );
+                            task.title = `${path.basename(target)}${t.muted(` — ${totalChanges} change${totalChanges !== 1 ? 's' : ''}`)}`;
+                            if (totalChanges > 0) {
+                                listCtx.allChanges.push({ target, changeSet, totalChanges, skippedDrifted: [] });
+                            }
+                        } catch (err) {
+                            if (err instanceof PruneModeReadError) {
+                                task.title = `${path.basename(target)} ${kleur.red('(skipped — cannot read in prune mode)')}`;
+                            } else {
+                                throw err;
+                            }
+                        }
+                    },
+                })),
+                { concurrent: true, exitOnError: false },
+            );
 
-                const totalChanges = plan.targets.reduce(
-                    (sum, t) => sum + t.files.length + t.mcpCore.filter(m => !m.installed).length, 0
-                ) + plan.optionalServers.length;
+            const diffCtx = await diffTasks.run({ allChanges: [] });
+            const allChanges = diffCtx.allChanges;
 
-                spinner.succeed(`Ready — ${totalChanges} potential change(s) across ${plan.targets.length} target(s)`);
-            } catch (err: any) {
-                spinner.fail(`Preflight failed: ${err.message}`);
-                process.exit(1);
-            }
-
-            // ── Phase 2: Interactive plan ───────────────────────────────────
-            const selected = await interactivePlan(plan, { dryRun, yes });
-            if (!selected) return; // dry-run or cancelled
-
-            if (selected.files.length === 0 && selected.mcpCore.length === 0 && selected.optionalServers.length === 0) {
-                console.log(kleur.green('\n✓ Nothing to do\n'));
+            if (allChanges.length === 0) {
+                console.log('\n' + t.boldGreen('✓ All targets are up-to-date') + '\n');
                 return;
             }
 
-            // ── Phase 3: Execute ────────────────────────────────────────────
+            // ── Phase 2: Plan table ─────────────────────────────────────────
+            renderPlanTable(allChanges);
 
-            // 3a. Prerequisite installs for selected optional servers
-            const postInstallMessages: string[] = [];
-            for (const optServer of selected.optionalServers) {
-                if (optServer.installCmd) {
-                    const installSpinner = ora(`Installing: ${optServer.installCmd}`).start();
-                    try {
-                        execSync(optServer.installCmd, { stdio: 'pipe' });
-                        installSpinner.succeed(kleur.green(`Installed: ${optServer.installCmd}`));
-                    } catch (err: any) {
-                        const stderr = (err.stderr as Buffer | undefined)?.toString() || err.message;
-                        installSpinner.fail(kleur.red(`Failed: ${optServer.installCmd}`));
-                        console.log(kleur.dim(`  ${stderr.trim()}`));
-                    }
-                }
-                if (optServer.postInstallMessage) {
-                    postInstallMessages.push(`[${optServer.name}]\n  ${optServer.postInstallMessage}`);
+            if (dryRun) {
+                console.log(t.accent('💡 Dry run — no changes written\n'));
+                return;
+            }
+
+            // ── Phase 3: Confirmation ───────────────────────────────────────
+            if (!yes) {
+                const totalChangesCount = allChanges.reduce((s, c) => s + c.totalChanges, 0);
+                const { confirm } = await prompts({
+                    type: 'confirm',
+                    name: 'confirm',
+                    message: `Proceed with ${actionType} (${totalChangesCount} total changes)?`,
+                    initial: true,
+                });
+                if (!confirm) {
+                    console.log(t.muted('  Sync cancelled.\n'));
+                    return;
                 }
             }
 
-            // 3b. File sync per target
-            const { syncMode } = plan;
-            const targetPaths = [...new Set([
-                ...selected.files.map(f => f.target),
-                ...selected.mcpCore.map(m => m.target),
-            ])];
+            // ── Phase 4: Execute sync ───────────────────────────────────────
+            let totalCount = 0;
 
-            let totalSynced = 0;
-            const skippedDrifted: string[] = [];
+            for (const { target, changeSet, skippedDrifted } of allChanges) {
+                console.log(t.bold(`\n  ${sym.arrow} ${path.basename(target)}`));
 
-            for (const targetPath of targetPaths) {
-                console.log(kleur.bold(`\n📂 ${path.basename(targetPath)}`));
+                const count = await executeSync(repoRoot, target, changeSet, syncMode, actionType, dryRun);
+                totalCount += count;
 
-                // Reconstruct a partial ChangeSet from selected file items
-                const targetFiles = selected.files.filter(f => f.target === targetPath);
-                const partialChangeSet: any = {
-                    skills:                   { missing: [], outdated: [], drifted: [], total: 0 },
-                    hooks:                    { missing: [], outdated: [], drifted: [], total: 0 },
-                    config:                   { missing: [], outdated: [], drifted: [], total: 0 },
-                    commands:                 { missing: [], outdated: [], drifted: [], total: 0 },
-                    'qwen-commands':          { missing: [], outdated: [], drifted: [], total: 0 },
-                    'antigravity-workflows':  { missing: [], outdated: [], drifted: [], total: 0 },
-                };
-                for (const f of targetFiles) {
-                    if (partialChangeSet[f.category]) {
-                        partialChangeSet[f.category][f.status].push(f.name);
+                // Track skipped drifted
+                for (const [category, cat] of Object.entries(changeSet)) {
+                    const c = cat as any;
+                    if (c.drifted.length > 0 && actionType === 'sync') {
+                        skippedDrifted.push(...c.drifted.map((item: string) => `${category}/${item}`));
                     }
                 }
 
-                const selectedOptionalNames = selected.optionalServers.map(s => s.name);
-                const count = await executeSync(
-                    repoRoot, targetPath, partialChangeSet, syncMode, actionType, false, selectedOptionalNames
-                );
-                totalSynced += count;
-
-                // Track drifted files (user selected them — they won't be overwritten since executeSync respects drifted)
-                for (const f of targetFiles) {
-                    if (f.status === 'drifted') {
-                        skippedDrifted.push(`${path.basename(targetPath)}/${f.category}/${f.name}`);
-                    }
-                }
+                console.log(t.success(`  ${sym.ok} ${count} item${count !== 1 ? 's' : ''} synced`));
             }
 
-            // 3c. Summary
-            console.log(kleur.bold(kleur.green(`\n✓ Synced ${totalSynced} item(s)\n`)));
-
-            if (skippedDrifted.length > 0) {
-                console.log(kleur.yellow(`  ⚠ ${skippedDrifted.length} drifted item(s) were preserved (local edits kept)`));
-                console.log(kleur.yellow(`  Run 'jaggers-config sync --backport' to push them back to the repo.\n`));
-            }
-
-            // 3d. Post-install messages
-            if (postInstallMessages.length > 0) {
-                console.log(kleur.yellow().bold('⚠️  Next Steps Required:\n'));
-                for (const msg of postInstallMessages) {
-                    console.log(kleur.yellow(`  ${msg}`));
-                }
-                console.log('');
-            }
+            // ── Phase 5: Summary card ───────────────────────────────────────
+            const allSkipped = allChanges.flatMap(c => c.skippedDrifted);
+            await renderSummaryCard(allChanges, totalCount, allSkipped, dryRun);
         });
 }

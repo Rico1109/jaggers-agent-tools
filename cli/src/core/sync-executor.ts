@@ -11,6 +11,10 @@ import type { ChangeSet } from '../types/config.js';
 /**
  * Execute a sync plan based on changeset and mode
  */
+// Track which MCP agents have been synced in this process run to prevent duplicate syncs
+// when multiple target directories map to the same agent (e.g. .claude + .gemini + .qwen)
+const syncedMcpAgents = new Set<string>();
+
 export async function executeSync(
     repoRoot: string,
     systemRoot: string,
@@ -36,7 +40,11 @@ export async function executeSync(
 
     try {
         const agent = detectAgent(systemRoot);
-        if (agent && actionType === 'sync') {
+
+        // Only sync MCP once per unique agent type per process run.
+        // Without this guard, selecting .claude + .gemini + .qwen causes
+        // syncMcpServersWithCli to fire 3 times with identical output.
+        if (agent && actionType === 'sync' && !syncedMcpAgents.has(agent)) {
             const coreConfig = loadCanonicalMcpConfig(repoRoot);
 
             // Build MCP config: core servers always + any pre-selected optionals
@@ -56,6 +64,7 @@ export async function executeSync(
             } else {
                 console.log(kleur.cyan(`  [DRY RUN] MCP sync for ${agent}`));
             }
+            syncedMcpAgents.add(agent);
             count++;
         }
 
@@ -67,7 +76,6 @@ export async function executeSync(
                 itemsToProcess.push(...cat.missing);
                 itemsToProcess.push(...cat.outdated);
 
-                // PRUNE: Handle removals from system if no longer in repo
                 if (mode === 'prune') {
                     for (const itemToDelete of cat.drifted || []) {
                         const dest = path.join(systemRoot, category, itemToDelete);
@@ -93,13 +101,12 @@ export async function executeSync(
                     src = path.join(repoRoot, 'config', 'settings.json');
                     dest = path.join(systemRoot, 'settings.json');
 
-                    console.log(kleur.gray(`  --> config/settings.json`));
-
+                    const agent = detectAgent(systemRoot);
                     if (agent) {
-                        console.log(kleur.gray(`  (Skipped: ${agent} uses ${agent} mcp CLI for MCP servers)`));
-                        count++;
                         continue;
                     }
+
+                    console.log(kleur.gray(`  --> config/settings.json`));
 
                     if (!isDryRun && await fs.pathExists(dest)) {
                         backups.push(await createBackup(dest));
@@ -135,7 +142,7 @@ export async function executeSync(
                         }
 
                         const mergeResult = await safeMergeConfig(dest, finalRepoConfig, {
-                            backupOnSuccess: false, // Handled by our own rollback system
+                            backupOnSuccess: false,
                             preserveComments: true,
                             dryRun: isDryRun,
                             resolvedLocalConfig: resolvedLocalConfig
@@ -155,7 +162,6 @@ export async function executeSync(
                     continue;
                 }
 
-                // Standard file sync for other items
                 const repoPath = category === 'commands' ? path.join(repoRoot, '.gemini', 'commands') :
                     category === 'qwen-commands' ? path.join(repoRoot, '.qwen', 'commands') :
                         category === 'antigravity-workflows' ? path.join(repoRoot, '.gemini', 'antigravity', 'global_workflows') :
@@ -203,11 +209,9 @@ export async function executeSync(
                         const result = await transformSkillToCommand(skillMdPath);
                         if (result && !isDryRun) {
                             const commandDest = path.join(systemRoot, 'commands', `${result.commandName}.toml`);
-
                             if (await fs.pathExists(commandDest)) {
                                 backups.push(await createBackup(commandDest));
                             }
-
                             await fs.ensureDir(path.dirname(commandDest));
                             await fs.writeFile(commandDest, result.toml);
                             console.log(kleur.cyan(`      (Auto-generated slash command: /${result.commandName})`));
@@ -221,15 +225,17 @@ export async function executeSync(
 
         if (!isDryRun && actionType === 'sync') {
             const manifestPath = path.join(systemRoot, '.jaggers-sync-manifest.json');
-            const manifest = {
+            const existing = await fs.pathExists(manifestPath)
+                ? await fs.readJson(manifestPath)
+                : {};
+            await fs.writeJson(manifestPath, {
+                ...existing,
                 lastSync: new Date().toISOString(),
                 repoRoot,
                 items: count
-            };
-            await fs.writeJson(manifestPath, manifest, { spaces: 2 });
+            }, { spaces: 2 });
         }
 
-        // Cleanup backups on success
         for (const backup of backups) {
             await cleanupBackup(backup);
         }
@@ -239,8 +245,11 @@ export async function executeSync(
     } catch (error: any) {
         console.error(kleur.red(`\nSync failed, rolling back ${backups.length} changes...`));
         for (const backup of backups) {
-            await restoreBackup(backup);
-            await cleanupBackup(backup);
+            try {
+                await restoreBackup(backup);
+            } finally {
+                await cleanupBackup(backup);
+            }
         }
         throw error;
     }

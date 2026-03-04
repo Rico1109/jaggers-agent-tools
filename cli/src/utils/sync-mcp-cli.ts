@@ -117,19 +117,16 @@ function parseMcpListOutput(output: string, pattern: RegExp): string[] {
 function resolveEnvVar(value: string): string {
     if (typeof value !== 'string') return value;
 
-    const envMatch = value.match(/\$\{([A-Z0-9_]+)\}/i);
-    if (envMatch) {
-        const envName = envMatch[1];
-        const envValue = process.env[envName];
+    return value.replace(/\$\{([A-Z0-9_]+)\}/g, (_match, envName) => {
+        const upperName = envName.toUpperCase();
+        const envValue = process.env[upperName];
         if (envValue) {
             return envValue;
         } else {
-            console.warn(kleur.yellow(`  ⚠️  Environment variable ${envName} is not set in ${getEnvFilePath()}`));
+            console.warn(kleur.yellow(`  ⚠️  Environment variable ${upperName} is not set in ${getEnvFilePath()}`));
             return '';
         }
-    }
-
-    return value;
+    });
 }
 
 export function detectAgent(systemRoot: string): AgentName | null {
@@ -191,7 +188,7 @@ function executeCommand(agent: AgentName, args: string[], dryRun: boolean = fals
     }
 
     try {
-        execSync(command, { stdio: 'pipe' });
+        execSync(command, { stdio: 'pipe', timeout: 10000 });
         console.log(kleur.green(`  ✓ ${args.slice(2).join(' ')}`));
         return { success: true };
     } catch (error: any) {
@@ -247,6 +244,9 @@ export function getCurrentServers(agent: AgentName): string[] {
 /**
  * Sync MCP servers to an agent using official CLI
  */
+// Prevents ensureEnvFile/loadEnvFile from firing once per target directory
+let envInitialized = false;
+
 export async function syncMcpServersWithCli(
     agent: AgentName,
     mcpConfig: any,
@@ -259,43 +259,96 @@ export async function syncMcpServersWithCli(
         return;
     }
 
-    console.log(kleur.bold(`\nSyncing MCP servers to ${agent}...`));
-
-    ensureEnvFile();
-    loadEnvFile();
-
-    const missingEnvVars = checkRequiredEnvVars();
-    if (missingEnvVars.length > 0) {
-        handleMissingEnvVars(missingEnvVars);
+    if (!envInitialized) {
+        ensureEnvFile();
+        loadEnvFile();
+        envInitialized = true;
     }
 
     const currentServers = getCurrentServers(agent);
+    const currentServersSet = new Set(currentServers);
     const canonicalServers = new Set(Object.keys(mcpConfig.mcpServers || {}));
 
     if (prune) {
-        console.log(kleur.red('\n  Prune mode: Removing servers not in canonical config...'));
-        for (const serverName of currentServers) {
-            if (!canonicalServers.has(serverName)) {
-                console.log(kleur.red(`  Removing: ${serverName}`));
+        const toRemove = currentServers.filter(s => !canonicalServers.has(s));
+        if (toRemove.length > 0) {
+            console.log(kleur.red(`  Pruning ${toRemove.length} server(s)...`));
+            for (const serverName of toRemove) {
                 executeCommand(agent, cli.remove(serverName), dryRun);
             }
         }
     }
 
-    console.log(kleur.cyan('\n  Adding/Updating canonical servers...'));
-    let successCount = 0;
+    // Determine which servers actually need to be added
+    const toAdd = Object.entries(mcpConfig.mcpServers || {}).filter(([name]) => !currentServersSet.has(name));
+    const skippedCount = canonicalServers.size - toAdd.length;
 
-    for (const [name, server] of Object.entries(mcpConfig.mcpServers)) {
-        const cmd = buildAddCommand(agent, name, server);
-        if (cmd) {
-            const result = executeCommand(agent, cmd, dryRun);
-            if (result.success) {
-                successCount++;
-            }
+    if (toAdd.length === 0) {
+        // Nothing to add — skip env warning, no CLI calls needed
+        console.log(kleur.dim(`  ✓ ${skippedCount} server(s) already installed`));
+        return;
+    }
+
+    // Step 1: Multiselect — all servers pre-selected, user can deselect with space
+    let selectedNames: string[] = toAdd.map(([name]) => name);
+
+    if (!dryRun) {
+        // @ts-ignore
+        const prompts = await import('prompts');
+        const { selected } = await prompts.default({
+            type: 'multiselect',
+            name: 'selected',
+            message: `Select MCP servers to install via ${agent} CLI:`,
+            choices: toAdd.map(([name, server]: [string, any]) => ({
+                title: name,
+                description: (server as any)._notes?.description || '',
+                value: name,
+                selected: true
+            })),
+            hint: '- Space to toggle. Enter to confirm.',
+            instructions: false
+        });
+
+        if (!selected || selected.length === 0) {
+            console.log(kleur.gray('  Skipped MCP installation.'));
+            return;
+        }
+
+        selectedNames = selected;
+
+        // Step 2: Only ask for env vars AFTER user confirms selection
+        const missingEnvVars = checkRequiredEnvVars();
+        if (missingEnvVars.length > 0) {
+            const shouldProceed = await handleMissingEnvVars(missingEnvVars);
+            if (!shouldProceed) return;
         }
     }
 
-    console.log(kleur.green(`\n  ✓ Synced ${successCount} MCP servers`));
+    // Step 3: Build and execute commands for selected servers only
+    const selectedSet = new Set(selectedNames);
+    const commandsToRun: Array<{ name: string; cmd: string[] }> = [];
+    for (const [name, server] of toAdd) {
+        if (!selectedSet.has(name)) continue;
+        const cmd = buildAddCommand(agent, name, server as any);
+        if (cmd) commandsToRun.push({ name, cmd });
+    }
+
+    if (commandsToRun.length === 0) return;
+
+    let successCount = 0;
+    for (const { name, cmd } of commandsToRun) {
+        const result = executeCommand(agent, cmd, dryRun);
+        if (result.success && !result.skipped) {
+            successCount++;
+            console.log(kleur.green(`  + ${name}`));
+        }
+    }
+
+    if (skippedCount > 0) {
+        console.log(kleur.dim(`  ✓ ${skippedCount} already installed, ${successCount} added`));
+    } else {
+        console.log(kleur.green(`  ✓ ${successCount} server(s) added`));
+    }
 }
 
 /**
@@ -325,7 +378,7 @@ export function loadCanonicalMcpConfig(repoRoot: string, includeOptional: boolea
  */
 export async function promptOptionalServers(repoRoot: string): Promise<string[] | false> {
     const optionalPath = path.join(repoRoot, 'config', 'mcp_servers_optional.json');
-    
+
     if (!fs.existsSync(optionalPath)) {
         return false;
     }
@@ -341,49 +394,30 @@ export async function promptOptionalServers(repoRoot: string): Promise<string[] 
         return false;
     }
 
-    console.log(kleur.bold('\n📦 Optional MCP Servers Available:'));
-    console.log(kleur.dim('   These are not installed by default.\n'));
-
-    for (let i = 0; i < servers.length; i++) {
-        const server = servers[i];
-        console.log(kleur.cyan(`   [${i + 1}] ${server.name}`));
-        console.log(kleur.dim(`      ${server.description}`));
-        if (server.prerequisite) {
-            console.log(kleur.yellow(`      ⚠️  ${server.prerequisite}`));
-        }
-    }
-
-    console.log(kleur.dim('\n   Enter numbers separated by commas (e.g., 1,2) or press Enter to skip.\n'));
-
     // @ts-ignore
     const prompts = await import('prompts');
-    
-    const { selection } = await prompts.default({
-        type: 'text',
-        name: 'selection',
-        message: 'Which optional servers would you like to install?',
-        initial: '',
-        format: (val: string) => val.trim()
+
+    const { selected } = await prompts.default({
+        type: 'multiselect',
+        name: 'selected',
+        message: 'Optional MCP servers available — select to install (space to toggle, enter to confirm):',
+        choices: servers.map(s => ({
+            title: s.name,
+            description: s.prerequisite
+                ? `${s.description} — ⚠️  ${s.prerequisite}`
+                : s.description,
+            value: s.name,
+            selected: false
+        })),
+        hint: '- Space to select. Enter to skip or confirm.',
+        instructions: false
     });
 
-    if (!selection || selection.trim() === '') {
+    if (!selected || selected.length === 0) {
         console.log(kleur.gray('  Skipping optional servers.\n'));
         return false;
     }
 
-    // Parse selection (e.g., "1,2" or "1, 2" or "1 2")
-    const selectedIndices = selection
-        .split(/[,\s]+/)
-        .map(s => parseInt(s.trim(), 10) - 1)
-        .filter(n => !isNaN(n) && n >= 0 && n < servers.length);
-
-    if (selectedIndices.length === 0) {
-        console.log(kleur.gray('  No valid selection. Skipping optional servers.\n'));
-        return false;
-    }
-
-    const selected = selectedIndices.map(i => servers[i].name);
     console.log(kleur.green(`  Selected: ${selected.join(', ')}\n`));
-    
     return selected;
 }
