@@ -11,6 +11,8 @@ import type { ChangeSet } from '../types/config.js';
 /**
  * Execute a sync plan based on changeset and mode
  */
+// Track which MCP agents have been synced in this process run to prevent duplicate syncs
+const syncedMcpAgents = new Set<string>();
 
 export async function executeSync(
     repoRoot: string,

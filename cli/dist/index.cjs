@@ -37634,6 +37634,7 @@ async function cleanupBackup(backup) {
 }
 
 // src/core/sync-executor.ts
+var syncedMcpAgents = /* @__PURE__ */ new Set();
 async function executeSync(repoRoot, systemRoot, changeSet, mode, actionType, isDryRun = false, selectedMcpServers) {
   const normalizedRoot = import_path10.default.normalize(systemRoot).replace(/\\/g, "/");
   const isAgentsSkills = normalizedRoot.includes(".agents/skills");
