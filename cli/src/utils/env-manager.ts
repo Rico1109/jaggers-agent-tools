@@ -108,13 +108,18 @@ export function loadEnvFile(): Record<string, string> {
 }
 
 /**
- * Check if required environment variables are set
- * Returns array of missing variable names
+ * Check if required environment variables are set.
+ * Pass an optional `subset` of var names to check only those
+ * (unrecognised names are silently ignored).
+ * Returns array of missing variable names.
  */
-export function checkRequiredEnvVars(): string[] {
+export function checkRequiredEnvVars(subset?: string[]): string[] {
     const missing: string[] = [];
+    const keysToCheck = subset
+        ? subset.filter(k => k in REQUIRED_ENV_VARS)
+        : Object.keys(REQUIRED_ENV_VARS);
 
-    for (const [key] of Object.entries(REQUIRED_ENV_VARS)) {
+    for (const key of keysToCheck) {
         if (!process.env[key]) {
             missing.push(key);
         }
